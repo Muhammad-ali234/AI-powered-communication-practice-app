@@ -4,38 +4,51 @@ import 'package:intl/intl.dart';
 import 'package:communication_practice/controllers/chat_controller.dart';
 import 'package:communication_practice/models/conversation_model.dart';
 import 'package:communication_practice/utils/theme.dart';
+import 'package:communication_practice/utils/responsive.dart';
 
 class StatisticsScreen extends StatelessWidget {
   const StatisticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveUtil(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Statistics'),
+        title: Text(
+          'Statistics',
+          style: TextStyle(
+            fontSize: responsive.fontSize(20),
+          ),
+        ),
       ),
       body: Consumer<ChatController>(
         builder: (context, chatController, child) {
           final conversations = chatController.getConversationHistorySorted();
           
           if (conversations.isEmpty) {
-            return const Center(
-              child: Text('No conversations available'),
+            return Center(
+              child: Text(
+                'No conversations available',
+                style: TextStyle(
+                  fontSize: responsive.fontSize(16),
+                ),
+              ),
             );
           }
           
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: responsive.responsivePadding(all: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildOverviewSection(context, conversations),
-                const SizedBox(height: 24),
-                _buildRecentActivitySection(context, conversations),
-                const SizedBox(height: 24),
-                _buildCategoryBreakdownSection(context, conversations),
-                const SizedBox(height: 24),
-                _buildScoreAnalysisSection(context, conversations),
+                _buildOverviewSection(context, conversations, responsive),
+                SizedBox(height: responsive.lg),
+                _buildRecentActivitySection(context, conversations, responsive),
+                SizedBox(height: responsive.lg),
+                _buildCategoryBreakdownSection(context, conversations, responsive),
+                SizedBox(height: responsive.lg),
+                _buildScoreAnalysisSection(context, conversations, responsive),
               ],
             ),
           );
@@ -44,7 +57,7 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
   
-  Widget _buildOverviewSection(BuildContext context, List<ConversationModel> conversations) {
+  Widget _buildOverviewSection(BuildContext context, List<ConversationModel> conversations, ResponsiveUtil responsive) {
     final completedConversations = conversations.where((c) => c.isCompleted).toList();
     final averageScore = completedConversations.isEmpty 
         ? 0.0 
@@ -55,9 +68,11 @@ class StatisticsScreen extends StatelessWidget {
       children: [
         Text(
           'Overview',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontSize: responsive.fontSize(Theme.of(context).textTheme.headlineMedium?.fontSize ?? 24),
+          ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: responsive.md),
         Row(
           children: [
             Expanded(
@@ -66,20 +81,22 @@ class StatisticsScreen extends StatelessWidget {
                 'Total Conversations',
                 conversations.length.toString(),
                 Icons.chat_outlined,
+                responsive,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: responsive.md),
             Expanded(
               child: _buildStatCard(
                 context,
                 'Completed',
                 completedConversations.length.toString(),
                 Icons.check_circle_outline_rounded,
+                responsive,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: responsive.md),
         Row(
           children: [
             Expanded(
@@ -88,15 +105,17 @@ class StatisticsScreen extends StatelessWidget {
                 'Average Score',
                 averageScore.toStringAsFixed(1),
                 Icons.star_outline_rounded,
+                responsive,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: responsive.md),
             Expanded(
               child: _buildStatCard(
                 context,
                 'Last 7 Days',
                 _getLastSevenDaysCount(conversations).toString(),
                 Icons.date_range_outlined,
+                responsive,
               ),
             ),
           ],
@@ -105,7 +124,7 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
   
-  Widget _buildRecentActivitySection(BuildContext context, List<ConversationModel> conversations) {
+  Widget _buildRecentActivitySection(BuildContext context, List<ConversationModel> conversations, ResponsiveUtil responsive) {
     // Get conversations from the last 30 days
     final now = DateTime.now();
     final thirtyDaysAgo = now.subtract(const Duration(days: 30));
@@ -125,12 +144,14 @@ class StatisticsScreen extends StatelessWidget {
       children: [
         Text(
           'Recent Activity',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontSize: responsive.fontSize(Theme.of(context).textTheme.headlineMedium?.fontSize ?? 24),
+          ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: responsive.md),
         Container(
-          height: 180,
-          padding: const EdgeInsets.all(16),
+          height: responsive.isSmallScreen ? 150 : 180,
+          padding: responsive.responsivePadding(all: 16),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.light
                 ? AppColors.surface
@@ -145,16 +166,21 @@ class StatisticsScreen extends StatelessWidget {
             ],
           ),
           child: activityByDay.isEmpty
-              ? const Center(
-                  child: Text('No recent activity'),
+              ? Center(
+                  child: Text(
+                    'No recent activity',
+                    style: TextStyle(
+                      fontSize: responsive.fontSize(14),
+                    ),
+                  ),
                 )
-              : _buildActivityChart(context, activityByDay),
+              : _buildActivityChart(context, activityByDay, responsive),
         ),
       ],
     );
   }
   
-  Widget _buildActivityChart(BuildContext context, Map<String, int> activityByDay) {
+  Widget _buildActivityChart(BuildContext context, Map<String, int> activityByDay, ResponsiveUtil responsive) {
     // Sort keys by date
     final sortedKeys = activityByDay.keys.toList()
       ..sort((a, b) {
@@ -173,12 +199,27 @@ class StatisticsScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text('$maxValue', style: const TextStyle(fontSize: 10)),
-            Text('${(maxValue / 2).round()}', style: const TextStyle(fontSize: 10)),
-            const Text('0', style: TextStyle(fontSize: 10)),
+            Text(
+              '$maxValue', 
+              style: TextStyle(
+                fontSize: responsive.fontSize(10)
+              )
+            ),
+            Text(
+              '${(maxValue / 2).round()}', 
+              style: TextStyle(
+                fontSize: responsive.fontSize(10)
+              )
+            ),
+            Text(
+              '0', 
+              style: TextStyle(
+                fontSize: responsive.fontSize(10)
+              )
+            ),
           ],
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: responsive.xs),
         // Bars
         Expanded(
           child: Row(
@@ -187,20 +228,26 @@ class StatisticsScreen extends StatelessWidget {
             children: sortedKeys.map((day) {
               final value = activityByDay[day]!;
               final heightPercent = maxValue > 0 ? value / maxValue : 0;
+              final barHeight = responsive.isSmallScreen ? 110.0 : 140.0;
               
               return Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Container(
-                    width: 20,
-                    height: 140.0 * heightPercent,
+                    width: responsive.isSmallScreen ? 16 : 20,
+                    height: barHeight * heightPercent,
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(day, style: const TextStyle(fontSize: 10)),
+                  SizedBox(height: responsive.xs),
+                  Text(
+                    day,
+                    style: TextStyle(
+                      fontSize: responsive.fontSize(10),
+                    ),
+                  ),
                 ],
               );
             }).toList(),
@@ -209,8 +256,57 @@ class StatisticsScreen extends StatelessWidget {
       ],
     );
   }
+
+  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon, ResponsiveUtil responsive) {
+    return Container(
+      padding: responsive.responsivePadding(all: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.light
+            ? AppColors.surface
+            : AppColors.darkCardBackground,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: AppColors.primary,
+                size: responsive.iconSize(20),
+              ),
+              SizedBox(width: responsive.xs),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).textTheme.bodySmall?.color,
+                  fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.xs),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: responsive.fontSize(Theme.of(context).textTheme.headlineMedium?.fontSize ?? 24),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
   
-  Widget _buildCategoryBreakdownSection(BuildContext context, List<ConversationModel> conversations) {
+  Widget _buildCategoryBreakdownSection(BuildContext context, List<ConversationModel> conversations, ResponsiveUtil responsive) {
     // Group by category
     final Map<String, int> categoryBreakdown = {};
     
@@ -229,11 +325,13 @@ class StatisticsScreen extends StatelessWidget {
       children: [
         Text(
           'Category Breakdown',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontSize: responsive.fontSize(Theme.of(context).textTheme.headlineMedium?.fontSize ?? 24),
+          ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: responsive.md),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: responsive.responsivePadding(all: 16),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.light
                 ? AppColors.surface
@@ -266,15 +364,18 @@ class StatisticsScreen extends StatelessWidget {
                           categoryNames[categoryId] ?? 'Unknown Category',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
+                            fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
                           ),
                         ),
                         Text(
                           '$count ($percent%)',
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: responsive.xs),
                     LinearProgressIndicator(
                       value: total > 0 ? count / total : 0,
                       backgroundColor: Colors.grey.shade200,
@@ -292,7 +393,7 @@ class StatisticsScreen extends StatelessWidget {
     );
   }
   
-  Widget _buildScoreAnalysisSection(BuildContext context, List<ConversationModel> conversations) {
+  Widget _buildScoreAnalysisSection(BuildContext context, List<ConversationModel> conversations, ResponsiveUtil responsive) {
     final completedConversations = conversations.where((c) => c.isCompleted && c.score != null).toList();
     
     if (completedConversations.isEmpty) {
@@ -301,11 +402,13 @@ class StatisticsScreen extends StatelessWidget {
         children: [
           Text(
             'Score Analysis',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontSize: responsive.fontSize(Theme.of(context).textTheme.headlineMedium?.fontSize ?? 24),
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.md),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: responsive.responsivePadding(all: 16),
             decoration: BoxDecoration(
               color: Theme.of(context).brightness == Brightness.light
                   ? AppColors.surface
@@ -364,11 +467,13 @@ class StatisticsScreen extends StatelessWidget {
       children: [
         Text(
           'Score Analysis',
-          style: Theme.of(context).textTheme.headlineMedium,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontSize: responsive.fontSize(Theme.of(context).textTheme.headlineMedium?.fontSize ?? 24),
+          ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: responsive.md),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: responsive.responsivePadding(all: 16),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.light
                 ? AppColors.surface
@@ -387,9 +492,11 @@ class StatisticsScreen extends StatelessWidget {
             children: [
               Text(
                 'Score Distribution',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 18),
+                ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: responsive.md),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: scoreRanges.entries.map((entry) {
@@ -402,16 +509,20 @@ class StatisticsScreen extends StatelessWidget {
                     children: [
                       Text(
                         '$count',
-                        style: Theme.of(context).textTheme.titleLarge,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontSize: responsive.fontSize(Theme.of(context).textTheme.titleLarge?.fontSize ?? 20),
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: responsive.xs),
                       Text(
                         range,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontSize: responsive.fontSize(Theme.of(context).textTheme.bodySmall?.fontSize ?? 12),
+                        ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: responsive.xs),
                       Container(
-                        width: 8,
+                        width: responsive.isSmallScreen ? 80 : 100,
                         height: 60.0 * (percent / 100.0),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
@@ -422,16 +533,28 @@ class StatisticsScreen extends StatelessWidget {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: responsive.md),
               Text(
                 'Highest Scoring Conversation',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 18),
+                ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: responsive.xs),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(highestScoring.title),
-                subtitle: Text(highestScoring.topic),
+                title: Text(
+                  highestScoring.title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+                  ),
+                ),
+                subtitle: Text(
+                  highestScoring.topic,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: responsive.fontSize(Theme.of(context).textTheme.bodySmall?.fontSize ?? 12),
+                  ),
+                ),
                 trailing: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -446,12 +569,14 @@ class StatisticsScreen extends StatelessWidget {
                         color: AppColors.primary,
                         size: 16,
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: responsive.xs),
                       Text(
                         highestScoring.score?.toStringAsFixed(1) ?? '0.0',
                         style: const TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
+                        ).copyWith(
+                          fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
                         ),
                       ),
                     ],
@@ -462,53 +587,6 @@ class StatisticsScreen extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-  
-  Widget _buildStatCard(BuildContext context, String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.light
-            ? AppColors.surface
-            : AppColors.darkCardBackground,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                color: AppColors.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).textTheme.bodySmall?.color,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
     );
   }
   

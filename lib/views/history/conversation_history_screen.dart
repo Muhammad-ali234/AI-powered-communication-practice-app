@@ -6,6 +6,7 @@ import 'package:communication_practice/controllers/chat_controller.dart';
 import 'package:communication_practice/models/conversation_model.dart';
 import 'package:communication_practice/models/message_model.dart';
 import 'package:communication_practice/utils/theme.dart';
+import 'package:communication_practice/utils/responsive.dart';
 import 'package:communication_practice/views/history/conversation_detail_screen.dart';
 import 'package:communication_practice/views/history/statistics_screen.dart';
 import 'package:communication_practice/widgets/empty_state.dart';
@@ -32,12 +33,22 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveUtil(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History'),
+        title: Text(
+          'History',
+          style: TextStyle(
+            fontSize: responsive.fontSize(20),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bar_chart_rounded),
+            icon: Icon(
+              Icons.bar_chart_rounded,
+              size: responsive.iconSize(24),
+            ),
             tooltip: 'Statistics',
             onPressed: () {
               Navigator.push(
@@ -49,7 +60,10 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.filter_list_rounded),
+            icon: Icon(
+              Icons.filter_list_rounded,
+              size: responsive.iconSize(24),
+            ),
             tooltip: 'Filter',
             onPressed: _showFilterDialog,
           ),
@@ -57,26 +71,38 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
       ),
       body: Column(
         children: [
-          _buildSearchBar(),
+          _buildSearchBar(responsive),
           Expanded(
-            child: _buildConversationList(),
+            child: _buildConversationList(responsive),
           ),
         ],
       ),
     );
   }
   
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(ResponsiveUtil responsive) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: responsive.responsivePadding(all: 16),
       child: TextField(
         controller: _searchController,
+        style: TextStyle(
+          fontSize: responsive.fontSize(16),
+        ),
         decoration: InputDecoration(
           hintText: 'Search conversations...',
-          prefixIcon: const Icon(Icons.search),
+          hintStyle: TextStyle(
+            fontSize: responsive.fontSize(16),
+          ),
+          prefixIcon: Icon(
+            Icons.search,
+            size: responsive.iconSize(20),
+          ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear),
+                  icon: Icon(
+                    Icons.clear,
+                    size: responsive.iconSize(20),
+                  ),
                   onPressed: () {
                     setState(() {
                       _searchController.clear();
@@ -89,6 +115,7 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
           ),
+          contentPadding: responsive.responsivePadding(vertical: 12, horizontal: 16),
         ),
         onChanged: (value) {
           setState(() {
@@ -99,7 +126,7 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
     );
   }
   
-  Widget _buildConversationList() {
+  Widget _buildConversationList(ResponsiveUtil responsive) {
     return Consumer<ChatController>(
       builder: (context, chatController, child) {
         final allConversations = chatController.getConversationHistorySorted();
@@ -132,23 +159,23 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
         }
         
         return ListView.builder(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: EdgeInsets.only(bottom: responsive.md),
           itemCount: filteredConversations.length,
           itemBuilder: (context, index) {
             final conversation = filteredConversations[index];
-            return _buildConversationCard(conversation);
+            return _buildConversationCard(conversation, responsive);
           },
         );
       },
     );
   }
   
-  Widget _buildConversationCard(ConversationModel conversation) {
+  Widget _buildConversationCard(ConversationModel conversation, ResponsiveUtil responsive) {
     final dateFormat = DateFormat('MMM d, yyyy • h:mm a');
     final formattedDate = dateFormat.format(conversation.createdAt);
     
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: responsive.responsivePadding(horizontal: 16, vertical: 8),
       child: Card(
         elevation: 1,
         shape: RoundedRectangleBorder(
@@ -165,7 +192,7 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: responsive.responsivePadding(all: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -175,14 +202,16 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
                     Expanded(
                       child: Text(
                         conversation.title,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (conversation.isCompleted)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: responsive.responsivePadding(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -190,18 +219,18 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.star_rounded,
                               color: AppColors.primary,
-                              size: 16,
+                              size: responsive.iconSize(16),
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: responsive.xs),
                             Text(
                               conversation.score?.toStringAsFixed(1) ?? '0.0',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12,
+                                fontSize: responsive.fontSize(12),
                               ),
                             ),
                           ],
@@ -209,14 +238,16 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: responsive.xs),
                 Text(
                   conversation.topic,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: responsive.sm),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -224,21 +255,27 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
                       formattedDate,
                       style: TextStyle(
                         color: Theme.of(context).textTheme.bodySmall?.color,
-                        fontSize: 12,
+                        fontSize: responsive.fontSize(12),
                       ),
                     ),
                     Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.file_download_outlined, size: 20),
+                          icon: Icon(
+                            Icons.file_download_outlined, 
+                            size: responsive.iconSize(20)
+                          ),
                           tooltip: 'Export',
                           onPressed: () => _exportConversation(conversation),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: responsive.md),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20),
+                          icon: Icon(
+                            Icons.delete_outline, 
+                            size: responsive.iconSize(20)
+                          ),
                           tooltip: 'Delete',
                           onPressed: () => _confirmDeleteConversation(conversation),
                           padding: EdgeInsets.zero,
@@ -258,32 +295,52 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
   }
   
   void _showFilterDialog() {
+    final responsive = ResponsiveUtil(context);
+    
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Filter Conversations'),
+              title: Text(
+                'Filter Conversations',
+                style: TextStyle(
+                  fontSize: responsive.fontSize(18),
+                ),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Category'),
-                  const SizedBox(height: 8),
-                  _buildCategoryFilter(setState),
-                  const SizedBox(height: 16),
+                  Text(
+                    'Category',
+                    style: TextStyle(
+                      fontSize: responsive.fontSize(16),
+                    ),
+                  ),
+                  SizedBox(height: responsive.xs),
+                  _buildCategoryFilter(setState, responsive),
+                  SizedBox(height: responsive.md),
                   Row(
                     children: [
-                      Checkbox(
-                        value: _onlyCompleted,
-                        onChanged: (value) {
-                          setState(() {
-                            _onlyCompleted = value ?? false;
-                          });
-                        },
+                      Transform.scale(
+                        scale: responsive.isSmallScreen ? 0.9 : 1.0,
+                        child: Checkbox(
+                          value: _onlyCompleted,
+                          onChanged: (value) {
+                            setState(() {
+                              _onlyCompleted = value ?? false;
+                            });
+                          },
+                        ),
                       ),
-                      const Text('Show only completed conversations'),
+                      Text(
+                        'Show only completed conversations',
+                        style: TextStyle(
+                          fontSize: responsive.fontSize(14),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -293,14 +350,24 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text('Cancel'),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      fontSize: responsive.fontSize(14),
+                    ),
+                  ),
                 ),
                 TextButton(
                   onPressed: () {
                     this.setState(() {});
                     Navigator.pop(context);
                   },
-                  child: const Text('Apply'),
+                  child: Text(
+                    'Apply',
+                    style: TextStyle(
+                      fontSize: responsive.fontSize(14),
+                    ),
+                  ),
                 ),
               ],
             );
@@ -310,9 +377,9 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
     );
   }
   
-  Widget _buildCategoryFilter(StateSetter setState) {
+  Widget _buildCategoryFilter(StateSetter setState, ResponsiveUtil responsive) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: responsive.responsivePadding(horizontal: 12),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(8),
@@ -321,28 +388,53 @@ class _ConversationHistoryScreenState extends State<ConversationHistoryScreen> {
         child: DropdownButton<String?>(
           isExpanded: true,
           value: _selectedCategoryId,
-          hint: const Text('All categories'),
+          hint: Text(
+            'All categories',
+            style: TextStyle(
+              fontSize: responsive.fontSize(14),
+            ),
+          ),
           onChanged: (String? newValue) {
             setState(() {
               _selectedCategoryId = newValue;
             });
           },
-          items: const [
+          items: [
             DropdownMenuItem<String?>(
               value: null,
-              child: Text('All categories'),
+              child: Text(
+                'All categories',
+                style: TextStyle(
+                  fontSize: responsive.fontSize(14),
+                ),
+              ),
             ),
             DropdownMenuItem<String>(
               value: '1',
-              child: Text('Job Interviews'),
+              child: Text(
+                'Job Interviews',
+                style: TextStyle(
+                  fontSize: responsive.fontSize(14),
+                ),
+              ),
             ),
             DropdownMenuItem<String>(
               value: '2',
-              child: Text('Public Speaking'),
+              child: Text(
+                'Public Speaking',
+                style: TextStyle(
+                  fontSize: responsive.fontSize(14),
+                ),
+              ),
             ),
             DropdownMenuItem<String>(
               value: '3',
-              child: Text('Social Situations'),
+              child: Text(
+                'Social Situations',
+                style: TextStyle(
+                  fontSize: responsive.fontSize(14),
+                ),
+              ),
             ),
           ],
         ),

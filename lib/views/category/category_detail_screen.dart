@@ -16,49 +16,42 @@ class CategoryDetailScreen extends StatelessWidget {
     final category = ModalRoute.of(context)!.settings.arguments as CategoryModel;
     final responsive = ResponsiveUtil(context);
     
-    // Debug prints to help diagnose layout issues
-    print('Screen size: ${MediaQuery.of(context).size}');
-    print('Responsive status: Small: ${responsive.isSmallScreen}, Medium: ${responsive.isMediumScreen}');
-    
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(context, category),
+          _buildAppBar(context, category, responsive),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: responsive.responsivePadding(all: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDifficultyIndicator(context, category),
-                  const SizedBox(height: 24),
-                  _buildCategoryDescription(context, category),
-                  const SizedBox(height: 24),
-                  Container(
-                    color: Colors.red.withOpacity(0.3),
-                    height: 200,
-                    child: _buildTopicsList(context, category, responsive),
-                  ),
+                  _buildDifficultyIndicator(context, category, responsive),
+                  SizedBox(height: responsive.lg),
+                  _buildCategoryDescription(context, category, responsive),
+                  SizedBox(height: responsive.lg),
+                  _buildTopicsList(context, category, responsive),
                 ],
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(context, category),
+      bottomNavigationBar: _buildBottomBar(context, category, responsive),
     );
   }
   
-  Widget _buildAppBar(BuildContext context, CategoryModel category) {
+  Widget _buildAppBar(BuildContext context, CategoryModel category, ResponsiveUtil responsive) {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: responsive.isSmallScreen ? 150 : 200,
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
           category.title,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
+            fontSize: responsive.fontSize(18),
           ),
         ),
         background: Container(
@@ -75,7 +68,7 @@ class CategoryDetailScreen extends StatelessWidget {
           child: Center(
             child: Icon(
               _getIconData(category.iconName),
-              size: 80,
+              size: responsive.iconSize(80),
               color: Colors.white.withOpacity(0.8),
             ),
           ),
@@ -84,21 +77,21 @@ class CategoryDetailScreen extends StatelessWidget {
       actions: [
         if (category.isPremium)
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: responsive.responsivePadding(all: 8),
             child: Chip(
-              label: const Text(
+              label: Text(
                 'PREMIUM',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: responsive.fontSize(12),
                 ),
               ),
               backgroundColor: Colors.amber[700],
-              avatar: const Icon(
+              avatar: Icon(
                 Icons.star_rounded,
                 color: Colors.white,
-                size: 16,
+                size: responsive.iconSize(16),
               ),
             ),
           ),
@@ -106,11 +99,26 @@ class CategoryDetailScreen extends StatelessWidget {
     );
   }
   
-  Widget _buildDifficultyIndicator(BuildContext context, CategoryModel category) {
-    final difficultyColor = category.difficulty.color;
+  Widget _buildDifficultyIndicator(BuildContext context, CategoryModel category, ResponsiveUtil responsive) {
+    // Get color based on difficulty level
+    final Color difficultyColor;
+    switch (category.difficulty) {
+      case CategoryDifficulty.beginner:
+        difficultyColor = Colors.green;
+        break;
+      case CategoryDifficulty.intermediate:
+        difficultyColor = Colors.blue;
+        break;
+      case CategoryDifficulty.advanced:
+        difficultyColor = Colors.orange;
+        break;
+      case CategoryDifficulty.expert:
+        difficultyColor = Colors.red;
+        break;
+    }
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: responsive.responsivePadding(all: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.light
             ? AppColors.surface
@@ -129,9 +137,11 @@ class CategoryDetailScreen extends StatelessWidget {
         children: [
           Text(
             'Difficulty Level',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.md),
           Row(
             children: [
               Expanded(
@@ -139,13 +149,13 @@ class CategoryDetailScreen extends StatelessWidget {
                   value: _getDifficultyValue(category.difficulty),
                   backgroundColor: Colors.grey.shade200,
                   color: difficultyColor,
-                  minHeight: 8,
+                  minHeight: responsive.isSmallScreen ? 6 : 8,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: responsive.md),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: responsive.responsivePadding(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: difficultyColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
@@ -155,25 +165,27 @@ class CategoryDetailScreen extends StatelessWidget {
                   style: TextStyle(
                     color: difficultyColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: responsive.fontSize(12),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.md),
           Text(
             _getDifficultyDescription(category.difficulty),
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+            ),
           ),
         ],
       ),
     );
   }
   
-  Widget _buildCategoryDescription(BuildContext context, CategoryModel category) {
+  Widget _buildCategoryDescription(BuildContext context, CategoryModel category, ResponsiveUtil responsive) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: responsive.responsivePadding(all: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.light
             ? AppColors.surface
@@ -192,12 +204,16 @@ class CategoryDetailScreen extends StatelessWidget {
         children: [
           Text(
             'About this category',
-            style: Theme.of(context).textTheme.titleMedium,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
+            ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: responsive.sm),
           Text(
             category.description,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+            ),
           ),
         ],
       ),
@@ -206,7 +222,7 @@ class CategoryDetailScreen extends StatelessWidget {
   
   Widget _buildTopicsList(BuildContext context, CategoryModel category, ResponsiveUtil responsive) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: responsive.responsivePadding(all: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.light
             ? AppColors.surface
@@ -225,43 +241,38 @@ class CategoryDetailScreen extends StatelessWidget {
         children: [
           Text(
             'Topics',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 16),
-          Flexible(
-            flex: 2,
-            fit: FlexFit.loose,
-            child: SizedBox(
-              height: 200,
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets.all(responsive.md),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: responsive.isMediumScreen ? 2 : responsive.isLargeScreen ? 3 : 4,
-                  childAspectRatio: 1.2,
-                  crossAxisSpacing: responsive.md,
-                  mainAxisSpacing: responsive.md,
-                ),
-                itemCount: category.topics.length,
-                itemBuilder: (context, index) {
-                  return _buildTopicItem(context, category.topics[index], category);
-                },
-              ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
             ),
+          ),
+          SizedBox(height: responsive.md),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.all(responsive.xs),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: responsive.isSmallScreen ? 1 : responsive.isMediumScreen ? 2 : 3,
+              childAspectRatio: responsive.isSmallScreen ? 4 : 3,
+              crossAxisSpacing: responsive.md,
+              mainAxisSpacing: responsive.md,
+            ),
+            itemCount: category.topics.length,
+            itemBuilder: (context, index) {
+              return _buildTopicItem(context, category.topics[index], category, responsive);
+            },
           ),
         ],
       ),
     );
   }
   
-  Widget _buildTopicItem(BuildContext context, String topic, CategoryModel category) {
+  Widget _buildTopicItem(BuildContext context, String topic, CategoryModel category, ResponsiveUtil responsive) {
     final isPremiumLocked = category.isPremium && 
         !Provider.of<AuthController>(context, listen: false).currentUser!.isPremium;
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: responsive.responsivePadding(bottom: 12),
+      padding: responsive.responsivePadding(all: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.light
             ? Colors.grey.shade50
@@ -277,14 +288,15 @@ class CategoryDetailScreen extends StatelessWidget {
           Icon(
             Icons.chat_bubble_outline_rounded,
             color: category.color,
-            size: 24,
+            size: responsive.iconSize(24),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: responsive.md),
           Expanded(
             child: Text(
               topic,
               style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                 fontWeight: FontWeight.w500,
+                fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyLarge?.fontSize ?? 16),
               ),
             ),
           ),
@@ -292,24 +304,24 @@ class CategoryDetailScreen extends StatelessWidget {
               ? Icon(
                   Icons.lock_rounded,
                   color: Colors.amber[700],
-                  size: 20,
+                  size: responsive.iconSize(20),
                 )
               : Icon(
                   Icons.arrow_forward_ios_rounded,
                   color: Colors.grey.shade400,
-                  size: 16,
+                  size: responsive.iconSize(16),
                 ),
         ],
       ),
     );
   }
   
-  Widget _buildBottomBar(BuildContext context, CategoryModel category) {
+  Widget _buildBottomBar(BuildContext context, CategoryModel category, ResponsiveUtil responsive) {
     final isPremiumLocked = category.isPremium && 
         !Provider.of<UserController>(context, listen: false).user!.isPremium;
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: responsive.responsivePadding(all: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.light
             ? Colors.white
@@ -327,50 +339,65 @@ class CategoryDetailScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ElevatedButton(
-                  onPressed: () => _showPremiumDialog(context),
+                  onPressed: () => _showPremiumDialog(context, responsive),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber[700],
                     foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 56),
+                    minimumSize: Size(double.infinity, responsive.isSmallScreen ? 48 : 56),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.star_rounded),
-                      SizedBox(width: 8),
-                      Text('Unlock Premium Content'),
+                      Icon(Icons.star_rounded, size: responsive.iconSize(24)),
+                      SizedBox(width: responsive.sm),
+                      Text(
+                        'Unlock Premium Content',
+                        style: TextStyle(
+                          fontSize: responsive.fontSize(16),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: responsive.sm),
                 TextButton(
                   onPressed: () {
                     // Navigate back
                     Navigator.pop(context);
                   },
-                  child: const Text('Not now'),
+                  child: Text(
+                    'Not now',
+                    style: TextStyle(
+                      fontSize: responsive.fontSize(14),
+                    ),
+                  ),
                 ),
               ],
             )
           : ElevatedButton(
-              onPressed: () => _showPracticeSetupDialog(context, category),
+              onPressed: () => _showPracticeSetupDialog(context, category, responsive),
               style: ElevatedButton.styleFrom(
                 backgroundColor: category.color,
                 foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 56),
+                minimumSize: Size(double.infinity, responsive.isSmallScreen ? 48 : 56),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text('Start Practice Session'),
+              child: Text(
+                'Start Practice Session',
+                style: TextStyle(
+                  fontSize: responsive.fontSize(16),
+                ),
+              ),
             ),
     );
   }
   
-  void _showPremiumDialog(BuildContext context) {
+  void _showPremiumDialog(BuildContext context, ResponsiveUtil responsive) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -379,36 +406,46 @@ class CategoryDetailScreen extends StatelessWidget {
             Icon(
               Icons.star_rounded,
               color: Colors.amber[700],
+              size: responsive.iconSize(24),
             ),
-            const SizedBox(width: 8),
-            const Text('Upgrade to Premium'),
+            SizedBox(width: responsive.sm),
+            Text(
+              'Upgrade to Premium',
+              style: TextStyle(
+                fontSize: responsive.fontSize(18),
+              ),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Unlock all premium features including:',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
+                fontSize: responsive.fontSize(14),
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.md),
             _buildPremiumFeatureItem(
               context, 
               'All Premium Categories',
               'Access to Business Negotiations, Team Leadership, and more',
+              responsive,
             ),
             _buildPremiumFeatureItem(
               context, 
               'Unlimited Practice Sessions',
               'Practice as much as you want with no limits',
+              responsive,
             ),
             _buildPremiumFeatureItem(
               context, 
               'Advanced AI Feedback',
               'Get detailed feedback on your communication style',
+              responsive,
             ),
           ],
         ),
@@ -417,15 +454,25 @@ class CategoryDetailScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
             },
-            child: const Text('Not now'),
+            child: Text(
+              'Not now',
+              style: TextStyle(
+                fontSize: responsive.fontSize(14),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               // Implement premium purchase
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Premium upgrade would be implemented here'),
+                SnackBar(
+                  content: Text(
+                    'Premium upgrade would be implemented here',
+                    style: TextStyle(
+                      fontSize: responsive.fontSize(14),
+                    ),
+                  ),
                 ),
               );
             },
@@ -433,38 +480,46 @@ class CategoryDetailScreen extends StatelessWidget {
               backgroundColor: Colors.amber[700],
               foregroundColor: Colors.white,
             ),
-            child: const Text('Upgrade Now'),
+            child: Text(
+              'Upgrade Now',
+              style: TextStyle(
+                fontSize: responsive.fontSize(14),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
   
-  Widget _buildPremiumFeatureItem(BuildContext context, String title, String description) {
+  Widget _buildPremiumFeatureItem(BuildContext context, String title, String description, ResponsiveUtil responsive) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: responsive.responsivePadding(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.check_circle_rounded,
             color: Colors.amber[700],
-            size: 20,
+            size: responsive.iconSize(20),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: responsive.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
+                    fontSize: responsive.fontSize(14),
                   ),
                 ),
                 Text(
                   description,
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: responsive.fontSize(12),
+                  ),
                 ),
               ],
             ),
@@ -474,13 +529,13 @@ class CategoryDetailScreen extends StatelessWidget {
     );
   }
   
-  void _showPracticeSetupDialog(BuildContext context, CategoryModel category) {
+  void _showPracticeSetupDialog(BuildContext context, CategoryModel category, ResponsiveUtil responsive) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: responsive.responsivePadding(all: 24),
         decoration: BoxDecoration(
           color: Theme.of(context).brightness == Brightness.light
               ? Colors.white
@@ -496,31 +551,47 @@ class CategoryDetailScreen extends StatelessWidget {
           children: [
             Text(
               'Practice Session Setup',
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontSize: responsive.fontSize(Theme.of(context).textTheme.headlineMedium?.fontSize ?? 24),
+              ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: responsive.xs),
             Text(
               'Configure your practice session settings',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+              ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: responsive.lg),
             Text(
               'Choose a topic:',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
+              ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.md),
             SizedBox(
-              height: 200,
+              height: responsive.isSmallScreen ? 150 : 200,
               child: ListView.builder(
                 itemCount: category.topics.length,
                 itemBuilder: (context, index) {
                   return ListTile(
+                    contentPadding: responsive.responsivePadding(vertical: 4, horizontal: 8),
                     leading: Icon(
                       Icons.chat_rounded,
                       color: category.color,
+                      size: responsive.iconSize(24),
                     ),
-                    title: Text(category.topics[index]),
-                    trailing: const Icon(Icons.arrow_forward_ios_rounded),
+                    title: Text(
+                      category.topics[index],
+                      style: TextStyle(
+                        fontSize: responsive.fontSize(14),
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: responsive.iconSize(16),
+                    ),
                     onTap: () {
                       Navigator.pop(context);
                       _startPracticeSession(context, category, category.topics[index]);
@@ -529,7 +600,7 @@ class CategoryDetailScreen extends StatelessWidget {
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.md),
             OutlinedButton(
               onPressed: () {
                 Navigator.pop(context);
@@ -540,14 +611,19 @@ class CategoryDetailScreen extends StatelessWidget {
                 );
               },
               style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 56),
+                minimumSize: Size(double.infinity, responsive.isSmallScreen ? 48 : 56),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text('Random Topic'),
+              child: Text(
+                'Random Topic',
+                style: TextStyle(
+                  fontSize: responsive.fontSize(14),
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.md),
           ],
         ),
       ),
@@ -618,4 +694,6 @@ class CategoryDetailScreen extends StatelessWidget {
 extension on UserModel {
   // For demonstration purposes only, in a real app this would be a proper field
   bool get isPremium => false;
-} 
+}
+
+// Extension is likely already defined elsewhere in the codebase 
