@@ -305,29 +305,31 @@ class _HomeScreenState extends State<HomeScreen> {
                         )
                       : filteredCategories.isEmpty
                           ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.search_off_rounded,
-                                    size: responsive.iconSize(48),
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  SizedBox(height: responsive.md),
-                                  Text(
-                                    'No categories found',
-                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.search_off_rounded,
+                                      size: responsive.iconSize(48),
+                                      color: AppColors.textSecondary,
                                     ),
-                                  ),
-                                  SizedBox(height: responsive.xs),
-                                  Text(
-                                    'Try a different search term or filter',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+                                    SizedBox(height: responsive.md),
+                                    Text(
+                                      'No categories found',
+                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(height: responsive.xs),
+                                    Text(
+                                      'Try a different search term or filter',
+                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontSize: responsive.fontSize(Theme.of(context).textTheme.bodyMedium?.fontSize ?? 14),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                           : GridView.builder(

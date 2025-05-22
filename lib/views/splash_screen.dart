@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:communication_practice/utils/routes.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:communication_practice/widgets/responsive_wrapper.dart';
 import 'package:communication_practice/utils/responsive.dart';
-import 'package:communication_practice/widgets/responsive_builders.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -119,11 +117,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 opacity: _fadeAnimation,
                 child: ScaleTransition(
                   scale: _scaleAnimation,
-                  child: ResponsiveWrapper(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: responsive.md,
-                      vertical: responsive.md,
-                    ),
+                  child: Padding(
+                    padding: responsive.responsivePadding(all: 24),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -133,18 +128,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                           color: Colors.white,
                         ),
                         SizedBox(height: responsive.md),
-                        ResponsiveText(
+                        Text(
                           'SpeakSmart',
                           style: Theme.of(context).textTheme.displayMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
+                            fontSize: responsive.fontSize(Theme.of(context).textTheme.displayMedium?.fontSize ?? 32),
                           ),
                         ),
                         SizedBox(height: responsive.xs),
-                        ResponsiveText(
+                        Text(
                           'Speak Smart. Connect Better.',
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: Colors.white.withOpacity(0.9),
+                            fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
                           ),
                           textAlign: TextAlign.center,
                         ),
