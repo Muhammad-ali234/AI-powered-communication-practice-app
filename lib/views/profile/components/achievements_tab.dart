@@ -5,6 +5,7 @@ import 'package:communication_practice/controllers/achievement_controller.dart';
 import 'package:communication_practice/controllers/user_controller.dart';
 import 'package:communication_practice/models/achievement_model.dart';
 import 'package:communication_practice/utils/theme.dart';
+import 'package:communication_practice/utils/responsive.dart';
 
 class AchievementsTab extends StatefulWidget {
   const AchievementsTab({super.key});
@@ -18,6 +19,8 @@ class _AchievementsTabState extends State<AchievementsTab> {
   
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveUtil(context);
+    
     return Consumer<AchievementController>(
       builder: (context, achievementController, child) {
         if (achievementController.isLoading) {
@@ -35,8 +38,13 @@ class _AchievementsTabState extends State<AchievementsTab> {
         final allAchievements = achievementController.achievements;
         
         if (allAchievements.isEmpty) {
-          return const Center(
-            child: Text('No achievements available'),
+          return Center(
+            child: Text(
+              'No achievements available',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                fontSize: responsive.fontSize(16),
+              ),
+            ),
           );
         }
         
@@ -55,30 +63,33 @@ class _AchievementsTabState extends State<AchievementsTab> {
         
         return Column(
           children: [
-            _buildCategorySelector(),
+            _buildCategorySelector(responsive),
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: responsive.responsivePadding(all: 16.0),
               child: Row(
                 children: [
                   Text(
                     'Progress: ',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: responsive.fontSize(16),
+                    ),
                   ),
                   Text(
                     '$completionPercentage%',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
+                      fontSize: responsive.fontSize(16),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: responsive.sm),
                   Expanded(
                     child: LinearProgressIndicator(
                       value: completionPercentage / 100,
                       backgroundColor: Colors.grey.shade200,
                       color: AppColors.primary,
-                      minHeight: 8,
-                      borderRadius: BorderRadius.circular(4),
+                      minHeight: responsive.isSmallScreen ? 6 : 8,
+                      borderRadius: BorderRadius.circular(responsive.xs),
                     ),
                   ),
                 ],
@@ -89,18 +100,12 @@ class _AchievementsTabState extends State<AchievementsTab> {
                   ? Center(
                       child: Text(
                         'No ${_selectedCategory.name} achievements available',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontSize: responsive.fontSize(16),
+                        ),
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: filteredAchievements.length,
-                      itemBuilder: (context, index) {
-                        return _buildAchievementCard(
-                          context,
-                          filteredAchievements[index],
-                        );
-                      },
-                    ),
+                  : _buildAchievementsList(responsive, filteredAchievements),
             ),
           ],
         );
@@ -108,10 +113,52 @@ class _AchievementsTabState extends State<AchievementsTab> {
     );
   }
   
-  Widget _buildCategorySelector() {
+  Widget _buildAchievementsList(ResponsiveUtil responsive, List<AchievementModel> achievements) {
+    // Use grid layout for larger screens
+    if (responsive.isLargeScreen || responsive.isExtraLargeScreen) {
+      return GridView.builder(
+        padding: responsive.responsivePadding(all: 16),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: responsive.gridCrossAxisCount.clamp(1, 2), // Max 2 columns for achievements
+          crossAxisSpacing: responsive.md,
+          mainAxisSpacing: responsive.md,
+          childAspectRatio: responsive.isExtraLargeScreen ? 2.5 : 2.0,
+        ),
+        itemCount: achievements.length,
+        itemBuilder: (context, index) {
+          return _buildAchievementCard(
+            context,
+            responsive,
+            achievements[index],
+          );
+        },
+      );
+    }
+    
+    // Use list layout for smaller screens
+    return ListView.builder(
+      padding: responsive.responsivePadding(all: 16),
+      itemCount: achievements.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: responsive.md),
+          child: _buildAchievementCard(
+            context,
+            responsive,
+            achievements[index],
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildCategorySelector(ResponsiveUtil responsive) {
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      height: responsive.isSmallScreen ? 50 : 60,
+      padding: responsive.responsivePadding(
+        vertical: 8,
+        horizontal: 16,
+      ),
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: AchievementCategory.values.map((category) {
@@ -124,11 +171,11 @@ class _AchievementsTabState extends State<AchievementsTab> {
               });
             },
             child: Container(
-              margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              margin: EdgeInsets.only(right: responsive.sm * 1.5),
+              padding: responsive.responsivePadding(horizontal: 16),
               decoration: BoxDecoration(
                 color: isSelected ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(responsive.isSmallScreen ? 16 : 20),
                 border: Border.all(
                   color: isSelected ? AppColors.primary : Colors.grey.shade300,
                 ),
@@ -139,6 +186,7 @@ class _AchievementsTabState extends State<AchievementsTab> {
                   style: TextStyle(
                     color: isSelected ? Colors.white : AppColors.textSecondary,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: responsive.fontSize(14),
                   ),
                 ),
               ),
@@ -149,13 +197,16 @@ class _AchievementsTabState extends State<AchievementsTab> {
     );
   }
   
-  Widget _buildAchievementCard(BuildContext context, AchievementModel achievement) {
+  Widget _buildAchievementCard(BuildContext context, ResponsiveUtil responsive, AchievementModel achievement) {
     final isUnlocked = achievement.isUnlocked;
+    final cardPadding = responsive.responsivePadding(all: 16.0);
+    final iconSize = responsive.iconSize(30);
+    final containerSize = responsive.iconSize(60);
     
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.md),
       ),
       color: isUnlocked
           ? AppColors.surface
@@ -163,12 +214,68 @@ class _AchievementsTabState extends State<AchievementsTab> {
               ? Colors.grey.shade100
               : AppColors.darkCardBackground.withOpacity(0.5),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
+        padding: cardPadding,
+        child: responsive.isSmallScreen
+            ? _buildCompactLayout(context, responsive, achievement, isUnlocked, iconSize, containerSize)
+            : _buildStandardLayout(context, responsive, achievement, isUnlocked, iconSize, containerSize),
+      ),
+    );
+  }
+  
+  Widget _buildStandardLayout(
+    BuildContext context,
+    ResponsiveUtil responsive,
+    AchievementModel achievement,
+    bool isUnlocked,
+    double iconSize,
+    double containerSize,
+  ) {
+    return Row(
+      children: [
+        Container(
+          width: containerSize,
+          height: containerSize,
+          decoration: BoxDecoration(
+            color: isUnlocked
+                ? AppColors.primary.withOpacity(0.1)
+                : Colors.grey.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            _getIconData(achievement.iconName),
+            color: isUnlocked ? AppColors.primary : Colors.grey,
+            size: iconSize,
+          ),
+        ),
+        SizedBox(width: responsive.md),
+        Expanded(
+          child: _buildAchievementContent(context, responsive, achievement, isUnlocked),
+        ),
+        if (isUnlocked)
+          Icon(
+            Icons.verified_rounded,
+            color: AppColors.success,
+            size: responsive.iconSize(24),
+          ),
+      ],
+    );
+  }
+  
+  Widget _buildCompactLayout(
+    BuildContext context,
+    ResponsiveUtil responsive,
+    AchievementModel achievement,
+    bool isUnlocked,
+    double iconSize,
+    double containerSize,
+  ) {
+    return Column(
+      children: [
+        Row(
           children: [
             Container(
-              width: 60,
-              height: 60,
+              width: containerSize * 0.8, // Smaller icon container for mobile
+              height: containerSize * 0.8,
               decoration: BoxDecoration(
                 color: isUnlocked
                     ? AppColors.primary.withOpacity(0.1)
@@ -178,10 +285,10 @@ class _AchievementsTabState extends State<AchievementsTab> {
               child: Icon(
                 _getIconData(achievement.iconName),
                 color: isUnlocked ? AppColors.primary : Colors.grey,
-                size: 30,
+                size: iconSize * 0.8,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: responsive.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,46 +300,76 @@ class _AchievementsTabState extends State<AchievementsTab> {
                           ? Theme.of(context).textTheme.titleMedium?.color
                           : Colors.grey,
                       fontWeight: FontWeight.bold,
+                      fontSize: responsive.fontSize(14),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    achievement.description,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isUnlocked
-                          ? Theme.of(context).textTheme.bodyMedium?.color
-                          : Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (isUnlocked && achievement.unlockedAt != null)
-                    Text(
-                      'Unlocked on ${DateFormat('MMM d, yyyy').format(achievement.unlockedAt!)}',
-                      style: const TextStyle(
-                        color: AppColors.success,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    )
-                  else
-                    LinearProgressIndicator(
-                      value: achievement.progress,
-                      backgroundColor: Colors.grey.shade300,
-                      color: AppColors.primary,
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(3),
+                  if (isUnlocked)
+                    Icon(
+                      Icons.verified_rounded,
+                      color: AppColors.success,
+                      size: responsive.iconSize(20),
                     ),
                 ],
               ),
             ),
-            if (isUnlocked)
-              const Icon(
-                Icons.verified_rounded,
-                color: AppColors.success,
-              ),
           ],
         ),
-      ),
+        SizedBox(height: responsive.sm),
+        _buildAchievementContent(context, responsive, achievement, isUnlocked),
+      ],
+    );
+  }
+  
+  Widget _buildAchievementContent(
+    BuildContext context,
+    ResponsiveUtil responsive,
+    AchievementModel achievement,
+    bool isUnlocked,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!responsive.isSmallScreen) // Title already shown in compact layout
+          Text(
+            achievement.title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: isUnlocked
+                  ? Theme.of(context).textTheme.titleMedium?.color
+                  : Colors.grey,
+              fontWeight: FontWeight.bold,
+              fontSize: responsive.fontSize(16),
+            ),
+          ),
+        if (!responsive.isSmallScreen)
+          SizedBox(height: responsive.xs),
+        Text(
+          achievement.description,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: isUnlocked
+                ? Theme.of(context).textTheme.bodyMedium?.color
+                : Colors.grey,
+            fontSize: responsive.fontSize(14),
+          ),
+        ),
+        SizedBox(height: responsive.sm),
+        if (isUnlocked && achievement.unlockedAt != null)
+          Text(
+            'Unlocked on ${DateFormat('MMM d, yyyy').format(achievement.unlockedAt!)}',
+            style: TextStyle(
+              color: AppColors.success,
+              fontSize: responsive.fontSize(12),
+              fontWeight: FontWeight.w500,
+            ),
+          )
+        else
+          LinearProgressIndicator(
+            value: achievement.progress,
+            backgroundColor: Colors.grey.shade300,
+            color: AppColors.primary,
+            minHeight: responsive.isSmallScreen ? 4 : 6,
+            borderRadius: BorderRadius.circular(responsive.xs / 2),
+          ),
+      ],
     );
   }
   
@@ -262,4 +399,4 @@ class _AchievementsTabState extends State<AchievementsTab> {
         return Icons.emoji_events_outlined;
     }
   }
-} 
+}

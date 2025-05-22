@@ -1,39 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:communication_practice/models/user_model.dart';
+import 'package:communication_practice/services/firebase/auth_service.dart';
 
 class AuthController extends ChangeNotifier {
   bool _isAuthenticated = false;
   bool _isLoading = false;
+  String? _error;
   String? _token;
   UserModel? _currentUser;
-  String? _error;
+  final AuthService _authService = AuthService();
   
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
-  String? get token => _token;
-  UserModel? get currentUser => _currentUser;
   String? get error => _error;
+  UserModel? get currentUser => _currentUser;
   
   AuthController() {
-    _initializeAuth();
+    _checkAuthStatus();
   }
   
-  Future<void> _initializeAuth() async {
+  Future<void> _checkAuthStatus() async {
     _setLoading(true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedToken = prefs.getString('auth_token');
-      
-      if (savedToken != null) {
-        // In a real app, you would validate the token with your backend
-        _token = savedToken;
-        await _fetchUserProfile();
+      final user = await _authService.getCurrentUser();
+      if (user != null) {
+        _currentUser = user;
         _isAuthenticated = true;
       }
     } catch (e) {
-      _setError('Failed to initialize authentication: ${e.toString()}');
-      _logout();
+      _setError('Failed to check auth status: ${e.toString()}');
     } finally {
       _setLoading(false);
     }
@@ -44,20 +40,10 @@ class AuthController extends ChangeNotifier {
     _setError(null);
     
     try {
-      // Simulate API call - replace with actual API call in production
-      await Future.delayed(const Duration(seconds: 2));
-      
-      if (email == 'test@example.com' && password == 'password123') {
-        _token = 'mock_token_12345';
+      final success = await _authService.login(email, password);
+      if (success) {
         _isAuthenticated = true;
-        
-        // Save token to persistent storage
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setString('auth_token', _token!);
-        
-        // Fetch user profile
-        await _fetchUserProfile();
-        
+        _currentUser = await _authService.getCurrentUser();
         notifyListeners();
         return true;
       } else {
@@ -77,28 +63,16 @@ class AuthController extends ChangeNotifier {
     _setError(null);
     
     try {
-      // Simulate API call - replace with actual API call in production
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // In a real app, this would create a new user account
-      _token = 'mock_token_12345';
-      _isAuthenticated = true;
-      
-      // Create a mock user
-      _currentUser = UserModel(
-        id: 'user_123',
-        name: name,
-        email: email,
-        createdAt: DateTime.now(),
-        lastActive: DateTime.now(),
-      );
-      
-      // Save token to persistent storage
-      final prefs = await SharedPreferences.getInstance();
-      prefs.setString('auth_token', _token!);
-      
-      notifyListeners();
-      return true;
+      final success = await _authService.signup(name, email, password);
+      if (success) {
+        _isAuthenticated = true;
+        _currentUser = await _authService.getCurrentUser();
+        notifyListeners();
+        return true;
+      } else {
+        _setError('Signup failed');
+        return false;
+      }
     } catch (e) {
       _setError('Signup failed: ${e.toString()}');
       return false;
@@ -112,14 +86,13 @@ class AuthController extends ChangeNotifier {
     _setError(null);
     
     try {
-      // Simulate API call - replace with actual API call in production
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // In a real app, this would send a password reset email
-      notifyListeners();
-      return true;
+      final success = await _authService.forgotPassword(email);
+      if (!success) {
+        _setError('Failed to send password reset email');
+      }
+      return success;
     } catch (e) {
-      _setError('Failed to send reset email: ${e.toString()}');
+      _setError('Failed to send password reset email: ${e.toString()}');
       return false;
     } finally {
       _setLoading(false);
@@ -131,21 +104,16 @@ class AuthController extends ChangeNotifier {
     _setError(null);
     
     try {
-      // Simulate API call - replace with actual Google Sign-In in production
-      await Future.delayed(const Duration(seconds: 2));
-      
-      _token = 'mock_google_token_12345';
-      _isAuthenticated = true;
-      
-      // Save token to persistent storage
-      final prefs = await SharedPreferences.getInstance();
-      prefs.setString('auth_token', _token!);
-      
-      // Fetch user profile
-      await _fetchUserProfile();
-      
-      notifyListeners();
-      return true;
+      final success = await _authService.loginWithGoogle();
+      if (success) {
+        _isAuthenticated = true;
+        _currentUser = await _authService.getCurrentUser();
+        notifyListeners();
+        return true;
+      } else {
+        _setError('Google login failed');
+        return false;
+      }
     } catch (e) {
       _setError('Google login failed: ${e.toString()}');
       return false;
@@ -159,21 +127,16 @@ class AuthController extends ChangeNotifier {
     _setError(null);
     
     try {
-      // Simulate API call - replace with actual Apple Sign-In in production
-      await Future.delayed(const Duration(seconds: 2));
-      
-      _token = 'mock_apple_token_12345';
-      _isAuthenticated = true;
-      
-      // Save token to persistent storage
-      final prefs = await SharedPreferences.getInstance();
-      prefs.setString('auth_token', _token!);
-      
-      // Fetch user profile
-      await _fetchUserProfile();
-      
-      notifyListeners();
-      return true;
+      final success = await _authService.loginWithApple();
+      if (success) {
+        _isAuthenticated = true;
+        _currentUser = await _authService.getCurrentUser();
+        notifyListeners();
+        return true;
+      } else {
+        _setError('Apple login failed');
+        return false;
+      }
     } catch (e) {
       _setError('Apple login failed: ${e.toString()}');
       return false;
@@ -182,44 +145,31 @@ class AuthController extends ChangeNotifier {
     }
   }
   
-  Future<void> _fetchUserProfile() async {
+  Future<void> logout() async {
+    _setLoading(true);
     try {
-      // Simulate API call - replace with actual API call in production
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Create a mock user profile
-      _currentUser = UserModel(
-        id: 'user_123',
-        name: 'John Doe',
-        email: 'test@example.com',
-        photoUrl: 'https://randomuser.me/api/portraits/men/32.jpg',
-        bio: 'Passionate about improving communication skills!',
-        conversationsCompleted: 15,
-        streak: 7,
-        averageScore: 4.2,
-        badges: ['Consistent Learner', 'Conversation Starter'],
-        createdAt: DateTime.now().subtract(const Duration(days: 30)),
-        lastActive: DateTime.now(),
-      );
+      await _authService.logout();
+      _isAuthenticated = false;
+      _currentUser = null;
+      notifyListeners();
     } catch (e) {
-      _setError('Failed to fetch user profile: ${e.toString()}');
+      _setError('Logout failed: ${e.toString()}');
+    } finally {
+      _setLoading(false);
     }
   }
   
-  Future<void> logout() async {
-    await _logout();
-  }
-  
-  Future<void> _logout() async {
-    _isAuthenticated = false;
-    _token = null;
-    _currentUser = null;
-    
-    // Clear token from persistent storage
-    final prefs = await SharedPreferences.getInstance();
-    prefs.remove('auth_token');
-    
-    notifyListeners();
+  Future<void> updateUserProfile(UserModel updatedUser) async {
+    _setLoading(true);
+    try {
+      await _authService.updateUserProfile(updatedUser);
+      _currentUser = updatedUser;
+      notifyListeners();
+    } catch (e) {
+      _setError('Failed to update profile: ${e.toString()}');
+    } finally {
+      _setLoading(false);
+    }
   }
   
   void _setLoading(bool loading) {

@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import 'package:communication_practice/models/conversation_model.dart';
 import 'package:communication_practice/models/message_model.dart';
 import 'package:communication_practice/models/category_model.dart';
+import 'package:communication_practice/services/firebase/firestore_service.dart';
 
 class ChatController extends ChangeNotifier {
   List<ConversationModel> _conversations = [];
@@ -10,6 +11,7 @@ class ChatController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSending = false;
   String? _error;
+  final FirestoreService _firestoreService = FirestoreService();
   
   List<ConversationModel> get conversations => _conversations;
   ConversationModel? get activeConversation => _activeConversation;
@@ -26,66 +28,7 @@ class ChatController extends ChangeNotifier {
     _setLoading(true);
     
     try {
-      // Simulate API call - replace with actual API call in production
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // Create mock conversations
-      _conversations = [
-        ConversationModel(
-          id: '1',
-          categoryId: '1',
-          title: 'Interview Preparation',
-          topic: 'Tell me about yourself',
-          createdAt: DateTime.now().subtract(const Duration(days: 5)),
-          completedAt: DateTime.now().subtract(const Duration(days: 5)),
-          score: 4.5,
-          feedback: 'Good job! You provided clear examples of your experience and skills.',
-          isCompleted: true,
-          messages: [
-            MessageModel(
-              id: '1',
-              conversationId: '1',
-              content: 'Let\'s practice a common job interview question. Tell me about yourself.',
-              sender: MessageSender.ai,
-              timestamp: DateTime.now().subtract(const Duration(days: 5, minutes: 30)),
-            ),
-            MessageModel(
-              id: '2',
-              conversationId: '1',
-              content: 'I\'m a software developer with 5 years of experience in building web applications...',
-              sender: MessageSender.user,
-              timestamp: DateTime.now().subtract(const Duration(days: 5, minutes: 28)),
-            ),
-          ],
-        ),
-        ConversationModel(
-          id: '2',
-          categoryId: '3',
-          title: 'Social Networking',
-          topic: 'Starting conversations at a party',
-          createdAt: DateTime.now().subtract(const Duration(days: 2)),
-          completedAt: DateTime.now().subtract(const Duration(days: 2)),
-          score: 3.8,
-          feedback: 'You could improve by asking more open-ended questions to keep the conversation flowing.',
-          isCompleted: true,
-          messages: [
-            MessageModel(
-              id: '3',
-              conversationId: '2',
-              content: 'Let\'s practice starting a conversation at a party. Imagine you don\'t know anyone there.',
-              sender: MessageSender.ai,
-              timestamp: DateTime.now().subtract(const Duration(days: 2, minutes: 45)),
-            ),
-            MessageModel(
-              id: '4',
-              conversationId: '2',
-              content: 'Hi there! I noticed your t-shirt. Are you a fan of that band?',
-              sender: MessageSender.user,
-              timestamp: DateTime.now().subtract(const Duration(days: 2, minutes: 43)),
-            ),
-          ],
-        ),
-      ];
+      _conversations = await _firestoreService.getConversations();
     } catch (e) {
       _setError('Failed to load conversations: ${e.toString()}');
     } finally {
@@ -115,6 +58,9 @@ class ChatController extends ChangeNotifier {
         messages: [initialMessage],
       );
       
+      // Save to Firestore
+      await _firestoreService.saveConversation(updatedConversation);
+      
       // Set as active conversation
       _activeConversation = updatedConversation;
       
@@ -137,8 +83,7 @@ class ChatController extends ChangeNotifier {
       return;
     }
     
-    _isSending = true;
-    notifyListeners();
+    _setSending(true);
     
     try {
       // Create user message
@@ -152,20 +97,17 @@ class ChatController extends ChangeNotifier {
       
       // Add user message to conversation
       final updatedMessages = [..._activeConversation!.messages, userMessage];
-      _activeConversation = _activeConversation!.copyWith(
-        messages: updatedMessages,
-      );
-      
-      notifyListeners();
+      _activeConversation = _activeConversation!.copyWith(messages: updatedMessages);
       
       // Generate AI response
       final aiResponse = await _generateAIResponse(content);
       
-      // Add AI message to conversation
-      final finalMessages = [..._activeConversation!.messages, aiResponse];
-      _activeConversation = _activeConversation!.copyWith(
-        messages: finalMessages,
-      );
+      // Add AI response to conversation
+      final finalMessages = [...updatedMessages, aiResponse];
+      _activeConversation = _activeConversation!.copyWith(messages: finalMessages);
+      
+      // Update conversation in Firestore
+      await _firestoreService.saveConversation(_activeConversation!);
       
       // Update conversation in the list
       final index = _conversations.indexWhere((c) => c.id == _activeConversation!.id);
@@ -176,26 +118,8 @@ class ChatController extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _setError('Failed to send message: ${e.toString()}');
-      
-      // Add error message to conversation
-      final errorMessage = MessageModel(
-        id: uuid.v4(),
-        conversationId: _activeConversation!.id,
-        content: 'Sorry, there was an error sending your message. Please try again.',
-        sender: MessageSender.ai,
-        timestamp: DateTime.now(),
-        isError: true,
-      );
-      
-      final updatedMessages = [..._activeConversation!.messages, errorMessage];
-      _activeConversation = _activeConversation!.copyWith(
-        messages: updatedMessages,
-      );
-      
-      notifyListeners();
     } finally {
-      _isSending = false;
-      notifyListeners();
+      _setSending(false);
     }
   }
   
@@ -208,9 +132,6 @@ class ChatController extends ChangeNotifier {
     _setLoading(true);
     
     try {
-      // Simulate API call to end conversation and get feedback
-      await Future.delayed(const Duration(seconds: 2));
-      
       // Generate random score
       final score = 3.5 + (1.5 * (DateTime.now().millisecondsSinceEpoch % 100) / 100);
       
@@ -221,6 +142,9 @@ class ChatController extends ChangeNotifier {
         score: score,
         feedback: 'You demonstrated good communication skills. Try to expand on your answers and provide more specific examples next time.',
       );
+      
+      // Update conversation in Firestore
+      await _firestoreService.saveConversation(_activeConversation!);
       
       // Update conversation in the list
       final index = _conversations.indexWhere((c) => c.id == _activeConversation!.id);
@@ -285,29 +209,16 @@ class ChatController extends ChangeNotifier {
   
   Future<MessageModel> _generateAIResponse(String userMessage) async {
     // Simulate AI response delay
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
     
-    // Simple keyword-based response generation
+    // Simple response generation - in a real app, this would use a more sophisticated AI model
     String response;
-    
-    if (userMessage.toLowerCase().contains('help') || userMessage.toLowerCase().contains('confused')) {
-      response = 'I understand this might be challenging. Let me clarify. Would you like me to provide some tips or examples to help you with this scenario?';
-    } else if (userMessage.toLowerCase().contains('yes') || userMessage.toLowerCase().contains('ready')) {
-      response = 'Great! Let\'s continue. Try to be specific in your responses and provide examples when possible. This helps make your communication more engaging and credible.';
-    } else if (userMessage.length < 20) {
-      response = 'I notice your response was quite brief. In real conversations, expanding on your thoughts helps create a connection. Could you elaborate a bit more on what you just shared?';
+    if (userMessage.toLowerCase().contains('hello') || userMessage.toLowerCase().contains('hi')) {
+      response = 'Hello! How can I help you with your communication practice today?';
+    } else if (userMessage.toLowerCase().contains('thank')) {
+      response = 'You\'re welcome! Is there anything specific you\'d like to practice?';
     } else {
-      // Generate a more generic thoughtful response
-      final responses = [
-        'Thank you for sharing that. I appreciate your perspective. How do you think others might respond to that approach?',
-        'That\'s an interesting point. In what situations do you think this approach works best?',
-        'I see where you\'re coming from. Have you considered how this might be perceived by someone with a different background or experience?',
-        'Good insights. If you were to face resistance to this idea, how might you adapt your communication?',
-        'That\'s a solid approach. What do you think is the most challenging aspect of communicating in this scenario?'
-      ];
-      
-      // Pick a random response
-      response = responses[DateTime.now().millisecondsSinceEpoch % responses.length];
+      response = 'That\'s interesting! Could you tell me more about that?';
     }
     
     return MessageModel(
@@ -321,6 +232,11 @@ class ChatController extends ChangeNotifier {
   
   void _setLoading(bool loading) {
     _isLoading = loading;
+    notifyListeners();
+  }
+  
+  void _setSending(bool sending) {
+    _isSending = sending;
     notifyListeners();
   }
   
@@ -338,6 +254,9 @@ class ChatController extends ChangeNotifier {
     _setLoading(true);
     
     try {
+      // Delete from Firestore
+      await _firestoreService.deleteConversation(conversationId);
+      
       // Remove conversation from the list
       _conversations.removeWhere((c) => c.id == conversationId);
       

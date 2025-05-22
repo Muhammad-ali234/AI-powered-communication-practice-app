@@ -4,6 +4,7 @@ import 'package:communication_practice/controllers/chat_controller.dart';
 import 'package:communication_practice/controllers/user_controller.dart';
 import 'package:communication_practice/models/conversation_model.dart';
 import 'package:communication_practice/utils/theme.dart';
+import 'package:communication_practice/utils/responsive.dart';
 import 'dart:math' as math;
 
 class ProgressCharts extends StatelessWidget {
@@ -11,27 +12,31 @@ class ProgressCharts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveUtil(context);
+    
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: responsive.responsivePadding(all: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Your Progress',
-            style: Theme.of(context).textTheme.headlineMedium,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontSize: responsive.fontSize(24),
+            ),
           ),
-          const SizedBox(height: 24),
-          _buildScoreChart(context),
-          const SizedBox(height: 32),
-          _buildCategoryDistributionChart(context),
-          const SizedBox(height: 32),
-          _buildWeeklyActivityChart(context),
+          SizedBox(height: responsive.lg),
+          _buildScoreChart(context, responsive),
+          SizedBox(height: responsive.xl),
+          _buildCategoryDistributionChart(context, responsive),
+          SizedBox(height: responsive.xl),
+          _buildWeeklyActivityChart(context, responsive),
         ],
       ),
     );
   }
   
-  Widget _buildScoreChart(BuildContext context) {
+  Widget _buildScoreChart(BuildContext context, ResponsiveUtil responsive) {
     final chatController = Provider.of<ChatController>(context);
     final conversations = chatController.getConversationHistorySorted();
     final completedConversations = conversations.where((c) => c.isCompleted && c.score != null).toList();
@@ -39,6 +44,7 @@ class ProgressCharts extends StatelessWidget {
     if (completedConversations.isEmpty) {
       return _buildEmptyChartCard(
         context,
+        responsive,
         'Score Progress',
         'Complete conversations to see your score progress',
       );
@@ -50,23 +56,25 @@ class ProgressCharts extends StatelessWidget {
     
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.md),
       ),
       elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: responsive.responsivePadding(all: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Score Progress',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: responsive.fontSize(18),
+              ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.md),
             SizedBox(
-              height: 220,
+              height: responsive.isSmallScreen ? 180 : 220,
               child: CustomPaint(
-                size: const Size(double.infinity, 200),
+                size: Size(double.infinity, responsive.isSmallScreen ? 160 : 200),
                 painter: ScoreChartPainter(
                   conversations: recentConversations,
                   lineColor: AppColors.primary,
@@ -74,25 +82,28 @@ class ProgressCharts extends StatelessWidget {
                   textColor: Theme.of(context).brightness == Brightness.light
                       ? AppColors.textSecondary
                       : AppColors.darkTextSecondary,
+                  responsive: responsive,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: responsive.sm),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 12,
-                  height: 12,
+                  width: responsive.sm * 1.5,
+                  height: responsive.sm * 1.5,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.primary,
                   ),
                 ),
-                const SizedBox(width: 4),
+                SizedBox(width: responsive.xs),
                 Text(
                   'Score (out of 5)',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: responsive.fontSize(14),
+                  ),
                 ),
               ],
             ),
@@ -102,13 +113,14 @@ class ProgressCharts extends StatelessWidget {
     );
   }
   
-  Widget _buildCategoryDistributionChart(BuildContext context) {
+  Widget _buildCategoryDistributionChart(BuildContext context, ResponsiveUtil responsive) {
     final chatController = Provider.of<ChatController>(context);
     final conversations = chatController.conversations;
     
     if (conversations.isEmpty) {
       return _buildEmptyChartCard(
         context,
+        responsive,
         'Category Distribution',
         'Complete conversations in different categories to see your distribution',
       );
@@ -135,81 +147,26 @@ class ProgressCharts extends StatelessWidget {
     
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.md),
       ),
       elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: responsive.responsivePadding(all: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Category Distribution',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 220,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 200,
-                    height: 200,
-                    child: CustomPaint(
-                      painter: PieChartPainter(
-                        categories: categoryCount.keys.toList(),
-                        values: categoryCount.values.toList(),
-                        colors: categoryCount.keys
-                            .map((k) => categoryColors[k] ?? Colors.grey)
-                            .toList(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: categoryCount.keys.map((categoryId) {
-                        final count = categoryCount[categoryId] ?? 0;
-                        final total = conversations.length;
-                        final percentage = (count / total * 100).round();
-                        final color = categoryColors[categoryId] ?? Colors.grey;
-                        final name = categoryNames[categoryId] ?? 'Unknown';
-                        
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 16,
-                                height: 16,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: color,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  name,
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ),
-                              Text(
-                                '$percentage%',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: responsive.fontSize(18),
               ),
+            ),
+            SizedBox(height: responsive.md),
+            SizedBox(
+              height: responsive.isSmallScreen ? 200 : 220,
+              child: responsive.isSmallScreen
+                  ? _buildVerticalCategoryChart(context, responsive, categoryCount, categoryColors, categoryNames)
+                  : _buildHorizontalCategoryChart(context, responsive, categoryCount, categoryColors, categoryNames),
             ),
           ],
         ),
@@ -217,13 +174,148 @@ class ProgressCharts extends StatelessWidget {
     );
   }
   
-  Widget _buildWeeklyActivityChart(BuildContext context) {
+  Widget _buildHorizontalCategoryChart(
+    BuildContext context,
+    ResponsiveUtil responsive,
+    Map<String, int> categoryCount,
+    Map<String, Color> categoryColors,
+    Map<String, String> categoryNames,
+  ) {
+    return Row(
+      children: [
+        SizedBox(
+          width: responsive.isLargeScreen ? 180 : 150,
+          height: responsive.isLargeScreen ? 180 : 150,
+          child: CustomPaint(
+            painter: PieChartPainter(
+              categories: categoryCount.keys.toList(),
+              values: categoryCount.values.toList(),
+              colors: categoryCount.keys
+                  .map((k) => categoryColors[k] ?? Colors.grey)
+                  .toList(),
+            ),
+          ),
+        ),
+        SizedBox(width: responsive.md),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: categoryCount.keys.map((categoryId) {
+              final count = categoryCount[categoryId] ?? 0;
+              final total = categoryCount.values.fold(0, (sum, val) => sum + val);
+              final percentage = (count / total * 100).round();
+              final color = categoryColors[categoryId] ?? Colors.grey;
+              final name = categoryNames[categoryId] ?? 'Unknown';
+              
+              return Padding(
+                padding: EdgeInsets.only(bottom: responsive.sm),
+                child: Row(
+                  children: [
+                    Container(
+                      width: responsive.md,
+                      height: responsive.md,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color,
+                      ),
+                    ),
+                    SizedBox(width: responsive.sm),
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: responsive.fontSize(14),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '$percentage%',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: responsive.fontSize(14),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildVerticalCategoryChart(
+    BuildContext context,
+    ResponsiveUtil responsive,
+    Map<String, int> categoryCount,
+    Map<String, Color> categoryColors,
+    Map<String, String> categoryNames,
+  ) {
+    return Column(
+      children: [
+        SizedBox(
+          width: 120,
+          height: 120,
+          child: CustomPaint(
+            painter: PieChartPainter(
+              categories: categoryCount.keys.toList(),
+              values: categoryCount.values.toList(),
+              colors: categoryCount.keys
+                  .map((k) => categoryColors[k] ?? Colors.grey)
+                  .toList(),
+            ),
+          ),
+        ),
+        SizedBox(height: responsive.md),
+        Expanded(
+          child: Column(
+            children: categoryCount.keys.map((categoryId) {
+              final count = categoryCount[categoryId] ?? 0;
+              final total = categoryCount.values.fold(0, (sum, val) => sum + val);
+              final percentage = (count / total * 100).round();
+              final color = categoryColors[categoryId] ?? Colors.grey;
+              final name = categoryNames[categoryId] ?? 'Unknown';
+              
+              return Padding(
+                padding: EdgeInsets.only(bottom: responsive.xs),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: responsive.sm,
+                      height: responsive.sm,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color,
+                      ),
+                    ),
+                    SizedBox(width: responsive.xs),
+                    Text(
+                      '$name $percentage%',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontSize: responsive.fontSize(12),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildWeeklyActivityChart(BuildContext context, ResponsiveUtil responsive) {
     final userController = Provider.of<UserController>(context);
     final chatController = Provider.of<ChatController>(context);
     
     if (userController.user == null || chatController.conversations.isEmpty) {
       return _buildEmptyChartCard(
         context,
+        responsive,
         'Weekly Activity',
         'Complete conversations on different days to see your activity pattern',
       );
@@ -254,35 +346,39 @@ class ProgressCharts extends StatelessWidget {
     
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.md),
       ),
       elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: responsive.responsivePadding(all: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Weekly Activity',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: responsive.fontSize(18),
+              ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.md),
             SizedBox(
-              height: 220,
+              height: responsive.isSmallScreen ? 180 : 220,
               child: Column(
                 children: [
                   Expanded(
                     child: BarChart(
                       dayCount: dayCount,
                       dayNames: dayNames,
+                      responsive: responsive,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: responsive.md),
                   Text(
                     'Most active on: ${_getMostActiveDayName(dayCount, dayNames)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
+                      fontSize: responsive.fontSize(14),
                     ),
                   ),
                 ],
@@ -308,39 +404,45 @@ class ProgressCharts extends StatelessWidget {
     return dayNames[maxDay] ?? 'Unknown';
   }
   
-  Widget _buildEmptyChartCard(BuildContext context, String title, String message) {
+  Widget _buildEmptyChartCard(BuildContext context, ResponsiveUtil responsive, String title, String message) {
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.md),
       ),
       elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: responsive.responsivePadding(all: 16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: responsive.fontSize(18),
+              ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: responsive.md),
             SizedBox(
-              height: 200,
+              height: responsive.isSmallScreen ? 160 : 200,
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.insert_chart_outlined,
-                      size: 64,
+                      size: responsive.iconSize(64),
                       color: Colors.grey.shade300,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      message,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
+                    SizedBox(height: responsive.md),
+                    Padding(
+                      padding: responsive.responsivePadding(horizontal: 16),
+                      child: Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: responsive.fontSize(14),
+                        ),
                       ),
                     ),
                   ],
@@ -359,21 +461,26 @@ class ScoreChartPainter extends CustomPainter {
   final Color lineColor;
   final Color pointColor;
   final Color textColor;
+  final ResponsiveUtil responsive;
   
   ScoreChartPainter({
     required this.conversations,
     required this.lineColor,
     required this.pointColor,
     required this.textColor,
+    required this.responsive,
   });
   
   @override
   void paint(Canvas canvas, Size size) {
     final height = size.height;
     final width = size.width;
+    final strokeWidth = responsive.isSmallScreen ? 2.0 : 3.0;
+    final pointRadius = responsive.isSmallScreen ? 4.0 : 6.0;
+    
     final paint = Paint()
       ..color = lineColor
-      ..strokeWidth = 3
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
     
@@ -403,7 +510,7 @@ class ScoreChartPainter extends CustomPainter {
         text: i.toString(),
         style: TextStyle(
           color: textColor,
-          fontSize: 10,
+          fontSize: responsive.fontSize(10),
         ),
       );
       textPainter.layout();
@@ -429,10 +536,10 @@ class ScoreChartPainter extends CustomPainter {
       }
       
       // Draw points
-      canvas.drawCircle(Offset(x, y), 6, pointPaint);
+      canvas.drawCircle(Offset(x, y), pointRadius, pointPaint);
       canvas.drawCircle(
         Offset(x, y),
-        4,
+        pointRadius - 2,
         Paint()..color = Colors.white,
       );
     }
@@ -506,11 +613,13 @@ class PieChartPainter extends CustomPainter {
 class BarChart extends StatelessWidget {
   final Map<int, int> dayCount;
   final Map<int, String> dayNames;
+  final ResponsiveUtil responsive;
   
   const BarChart({
     super.key,
     required this.dayCount,
     required this.dayNames,
+    required this.responsive,
   });
   
   @override
@@ -519,8 +628,11 @@ class BarChart extends StatelessWidget {
         ? 1
         : dayCount.values.reduce(math.max).clamp(1, double.infinity);
     
+    final barWidth = responsive.isSmallScreen ? 20.0 : 24.0;
+    final maxBarHeight = responsive.isSmallScreen ? 100.0 : 120.0;
+    
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      padding: responsive.responsivePadding(horizontal: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -532,29 +644,31 @@ class BarChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Container(
-                width: 24,
-                height: 120 * heightPercentage,
+                width: barWidth,
+                height: maxBarHeight * heightPercentage,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(responsive.xs),
                 ),
                 child: count > 0
                     ? Center(
                         child: Text(
                           '$count',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: responsive.fontSize(10),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       )
                     : null,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: responsive.sm),
               Text(
                 dayNames[day] ?? '',
-                style: Theme.of(context).textTheme.bodySmall,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontSize: responsive.fontSize(12),
+                ),
               ),
             ],
           );
@@ -562,4 +676,4 @@ class BarChart extends StatelessWidget {
       ),
     );
   }
-} 
+}

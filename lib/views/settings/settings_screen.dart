@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:communication_practice/controllers/settings_controller.dart';
 import 'package:communication_practice/controllers/auth_controller.dart';
 import 'package:communication_practice/utils/theme.dart';
+import 'package:communication_practice/utils/responsive.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -20,58 +21,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveUtil(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(
+          'Settings',
+          style: TextStyle(
+            fontSize: responsive.fontSize(20),
+          ),
+        ),
       ),
       body: Consumer<SettingsController>(
         builder: (context, settings, _) {
           return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: responsive.responsivePadding(vertical: 16),
             children: [
               // THEME CUSTOMIZATION
-              _buildSectionHeader(context, 'Appearance'),
-              _buildThemeOptions(context, settings),
+              _buildSectionHeader(context, 'Appearance', responsive),
+              _buildThemeOptions(context, settings, responsive),
               const Divider(),
               
               // NOTIFICATION PREFERENCES
-              _buildSectionHeader(context, 'Notifications'),
-              SwitchListTile(
-                title: const Text('Practice Reminders'),
-                subtitle: const Text('Get daily reminders to practice'),
-                value: settings.practiceReminders,
-                onChanged: (value) => settings.togglePracticeReminders(value),
-                secondary: const Icon(Icons.alarm),
+              _buildSectionHeader(context, 'Notifications', responsive),
+              _buildSwitchListTile(
+                context,
+                'Practice Reminders',
+                'Get daily reminders to practice',
+                settings.practiceReminders,
+                (value) => settings.togglePracticeReminders(value),
+                Icons.alarm,
+                responsive,
               ),
-              SwitchListTile(
-                title: const Text('New Feature Alerts'),
-                subtitle: const Text('Get notified about new app features'),
-                value: settings.newFeatureAlerts,
-                onChanged: (value) => settings.toggleNewFeatureAlerts(value),
-                secondary: const Icon(Icons.new_releases),
+              _buildSwitchListTile(
+                context,
+                'New Feature Alerts',
+                'Get notified about new app features',
+                settings.newFeatureAlerts,
+                (value) => settings.toggleNewFeatureAlerts(value),
+                Icons.new_releases,
+                responsive,
               ),
-              SwitchListTile(
-                title: const Text('Weekly Progress Reports'),
-                subtitle: const Text('Receive weekly summaries of your progress'),
-                value: settings.weeklyProgressReports,
-                onChanged: (value) => settings.toggleWeeklyProgressReports(value),
-                secondary: const Icon(Icons.summarize),
+              _buildSwitchListTile(
+                context,
+                'Weekly Progress Reports',
+                'Receive weekly summaries of your progress',
+                settings.weeklyProgressReports,
+                (value) => settings.toggleWeeklyProgressReports(value),
+                Icons.summarize,
+                responsive,
               ),
               const Divider(),
               
               // LANGUAGE SETTINGS
-              _buildSectionHeader(context, 'Language'),
-              _buildLanguageSelector(context, settings),
+              _buildSectionHeader(context, 'Language', responsive),
+              _buildLanguageSelector(context, settings, responsive),
               const Divider(),
               
               // DATA MANAGEMENT
-              _buildSectionHeader(context, 'Data Management'),
-              SwitchListTile(
-                title: const Text('Auto-save Conversations'),
-                subtitle: const Text('Automatically save your practice sessions'),
-                value: settings.autoSaveConversations,
-                onChanged: (value) => settings.toggleAutoSaveConversations(value),
-                secondary: const Icon(Icons.save),
+              _buildSectionHeader(context, 'Data Management', responsive),
+              _buildSwitchListTile(
+                context,
+                'Auto-save Conversations',
+                'Automatically save your practice sessions',
+                settings.autoSaveConversations,
+                (value) => settings.toggleAutoSaveConversations(value),
+                Icons.save,
+                responsive,
               ),
               ExpansionPanelList(
                 elevation: 0,
@@ -84,40 +100,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ExpansionPanel(
                     headerBuilder: (context, isExpanded) {
-                      return const ListTile(
-                        title: Text('Advanced Data Options'),
-                        subtitle: Text('Export or delete your data'),
-                        leading: Icon(Icons.storage),
+                      return ListTile(
+                        title: Text(
+                          'Advanced Data Options',
+                          style: TextStyle(
+                            fontSize: responsive.fontSize(16),
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Export or delete your data',
+                          style: TextStyle(
+                            fontSize: responsive.fontSize(14),
+                          ),
+                        ),
+                        leading: Icon(
+                          Icons.storage,
+                          size: responsive.iconSize(24),
+                        ),
                       );
                     },
                     body: Column(
                       children: [
-                        ListTile(
-                          title: const Text('Export Data'),
-                          subtitle: const Text('Download all your data as a file'),
-                          leading: const Icon(Icons.download),
-                          trailing: _isExportingData 
-                              ? const SizedBox(
-                                  width: 20, 
-                                  height: 20, 
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: _isExportingData ? null : () => _exportData(settings),
+                        _buildDataManagementTile(
+                          context,
+                          'Export Data',
+                          'Download all your data as a file',
+                          Icons.download,
+                          _isExportingData,
+                          () => _exportData(settings),
+                          responsive,
                         ),
-                        ListTile(
-                          title: const Text('Delete All Data'),
-                          subtitle: const Text('Permanently delete all your data'),
-                          leading: const Icon(Icons.delete_forever, color: AppColors.error),
-                          trailing: _isDeletingData 
-                              ? const SizedBox(
-                                  width: 20, 
-                                  height: 20, 
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.arrow_forward_ios, size: 16),
-                          textColor: AppColors.error,
-                          onTap: _isDeletingData ? null : () => _confirmDataDeletion(context, settings),
+                        _buildDataManagementTile(
+                          context,
+                          'Delete All Data',
+                          'Permanently delete all your data',
+                          Icons.delete_forever,
+                          _isDeletingData,
+                          () => _confirmDataDeletion(context, settings),
+                          responsive,
+                          isDestructive: true,
                         ),
                       ],
                     ),
@@ -128,60 +149,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const Divider(),
               
               // PRIVACY SETTINGS
-              _buildSectionHeader(context, 'Privacy'),
-              SwitchListTile(
-                title: const Text('Analytics'),
-                subtitle: const Text('Allow anonymous usage data collection to improve the app'),
-                value: settings.analyticsEnabled,
-                onChanged: (value) => settings.toggleAnalytics(value),
-                secondary: const Icon(Icons.analytics),
+              _buildSectionHeader(context, 'Privacy', responsive),
+              _buildSwitchListTile(
+                context,
+                'Analytics',
+                'Allow anonymous usage data collection to improve the app',
+                settings.analyticsEnabled,
+                (value) => settings.toggleAnalytics(value),
+                Icons.analytics,
+                responsive,
               ),
-              SwitchListTile(
-                title: const Text('Personalized Content'),
-                subtitle: const Text('Receive content tailored to your practice habits'),
-                value: settings.personalizedContent,
-                onChanged: (value) => settings.togglePersonalizedContent(value),
-                secondary: const Icon(Icons.person),
+              _buildSwitchListTile(
+                context,
+                'Personalized Content',
+                'Receive content tailored to your practice habits',
+                settings.personalizedContent,
+                (value) => settings.togglePersonalizedContent(value),
+                Icons.person,
+                responsive,
               ),
-              ListTile(
-                title: const Text('Privacy Policy'),
-                subtitle: const Text('Read our privacy policy'),
-                leading: const Icon(Icons.policy),
-                trailing: const Icon(Icons.open_in_new, size: 16),
-                onTap: () => _launchURL('https://example.com/privacy'),
+              _buildListTile(
+                context,
+                'Privacy Policy',
+                'Read our privacy policy',
+                Icons.policy,
+                () => _launchURL('https://example.com/privacy'),
+                responsive,
               ),
               const Divider(),
               
               // ABOUT SECTION
-              _buildSectionHeader(context, 'About'),
-              ListTile(
-                title: const Text('Version'),
-                subtitle: Text(settings.appVersion),
-                leading: const Icon(Icons.info),
+              _buildSectionHeader(context, 'About', responsive),
+              _buildListTile(
+                context,
+                'Version',
+                settings.appVersion,
+                Icons.info,
+                null,
+                responsive,
               ),
-              ListTile(
-                title: const Text('Terms of Service'),
-                leading: const Icon(Icons.description),
-                trailing: const Icon(Icons.open_in_new, size: 16),
-                onTap: () => _launchURL('https://example.com/terms'),
+              _buildListTile(
+                context,
+                'Terms of Service',
+                null,
+                Icons.description,
+                () => _launchURL('https://example.com/terms'),
+                responsive,
               ),
-              ListTile(
-                title: const Text('Rate App'),
-                leading: const Icon(Icons.star),
-                trailing: const Icon(Icons.open_in_new, size: 16),
-                onTap: () => _launchURL('https://play.google.com/store/apps'),
+              _buildListTile(
+                context,
+                'Rate App',
+                null,
+                Icons.star,
+                () => _launchURL('https://play.google.com/store/apps'),
+                responsive,
               ),
-              ListTile(
-                title: const Text('Share App'),
-                leading: const Icon(Icons.share),
-                onTap: _shareApp,
+              _buildListTile(
+                context,
+                'Share App',
+                null,
+                Icons.share,
+                _shareApp,
+                responsive,
               ),
               Consumer<AuthController>(
                 builder: (context, auth, _) {
-                  return ListTile(
-                    title: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
-                    leading: const Icon(Icons.logout, color: AppColors.error),
-                    onTap: () => _confirmSignOut(context, auth),
+                  return _buildListTile(
+                    context,
+                    'Sign Out',
+                    null,
+                    Icons.logout,
+                    () => _confirmSignOut(context, auth),
+                    responsive,
+                    isDestructive: true,
                   );
                 },
               ),
@@ -192,57 +232,240 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
   
-  Widget _buildSectionHeader(BuildContext context, String title) {
+  Widget _buildSectionHeader(BuildContext context, String title, ResponsiveUtil responsive) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: EdgeInsets.fromLTRB(
+        responsive.md,
+        responsive.md,
+        responsive.md,
+        responsive.sm,
+      ),
       child: Text(
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
           color: AppColors.primary,
           fontWeight: FontWeight.bold,
+          fontSize: responsive.fontSize(Theme.of(context).textTheme.titleMedium?.fontSize ?? 16),
         ),
       ),
     );
   }
   
-  Widget _buildThemeOptions(BuildContext context, SettingsController settings) {
+  Widget _buildThemeOptions(BuildContext context, SettingsController settings, ResponsiveUtil responsive) {
     return Column(
       children: [
-        RadioListTile<ThemeMode>(
-          title: const Text('System Theme'),
-          subtitle: const Text('Follow system settings'),
-          value: ThemeMode.system,
-          groupValue: settings.themeMode,
-          onChanged: (value) => settings.setThemeMode(value!),
-          secondary: const Icon(Icons.brightness_auto),
+        _buildRadioListTile(
+          context,
+          'System Theme',
+          'Follow system settings',
+          ThemeMode.system,
+          settings.themeMode,
+          (value) => settings.setThemeMode(value!),
+          Icons.brightness_auto,
+          responsive,
         ),
-        RadioListTile<ThemeMode>(
-          title: const Text('Light Theme'),
-          subtitle: const Text('Always use light mode'),
-          value: ThemeMode.light,
-          groupValue: settings.themeMode,
-          onChanged: (value) => settings.setThemeMode(value!),
-          secondary: const Icon(Icons.brightness_5),
+        _buildRadioListTile(
+          context,
+          'Light Theme',
+          'Always use light mode',
+          ThemeMode.light,
+          settings.themeMode,
+          (value) => settings.setThemeMode(value!),
+          Icons.brightness_5,
+          responsive,
         ),
-        RadioListTile<ThemeMode>(
-          title: const Text('Dark Theme'),
-          subtitle: const Text('Always use dark mode'),
-          value: ThemeMode.dark,
-          groupValue: settings.themeMode,
-          onChanged: (value) => settings.setThemeMode(value!),
-          secondary: const Icon(Icons.brightness_4),
+        _buildRadioListTile(
+          context,
+          'Dark Theme',
+          'Always use dark mode',
+          ThemeMode.dark,
+          settings.themeMode,
+          (value) => settings.setThemeMode(value!),
+          Icons.brightness_4,
+          responsive,
         ),
       ],
     );
   }
   
-  Widget _buildLanguageSelector(BuildContext context, SettingsController settings) {
+  Widget _buildLanguageSelector(BuildContext context, SettingsController settings, ResponsiveUtil responsive) {
     return ListTile(
-      title: const Text('Language'),
-      subtitle: Text(settings.languageName),
-      leading: const Icon(Icons.language),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      title: Text(
+        'Language',
+        style: TextStyle(
+          fontSize: responsive.fontSize(16),
+        ),
+      ),
+      subtitle: Text(
+        settings.languageName,
+        style: TextStyle(
+          fontSize: responsive.fontSize(14),
+        ),
+      ),
+      leading: Icon(
+        Icons.language,
+        size: responsive.iconSize(24),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: responsive.iconSize(16),
+      ),
       onTap: () => _showLanguageSelectionDialog(context, settings),
+    );
+  }
+  
+  Widget _buildSwitchListTile(
+    BuildContext context,
+    String title,
+    String subtitle,
+    bool value,
+    Function(bool) onChanged,
+    IconData icon,
+    ResponsiveUtil responsive, {
+    bool isDestructive = false,
+  }) {
+    return SwitchListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: responsive.fontSize(16),
+          color: isDestructive ? AppColors.error : null,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: responsive.fontSize(14),
+        ),
+      ),
+      value: value,
+      onChanged: onChanged,
+      secondary: Icon(
+        icon,
+        size: responsive.iconSize(24),
+        color: isDestructive ? AppColors.error : null,
+      ),
+    );
+  }
+  
+  Widget _buildRadioListTile(
+    BuildContext context,
+    String title,
+    String subtitle,
+    ThemeMode value,
+    ThemeMode groupValue,
+    Function(ThemeMode?) onChanged,
+    IconData icon,
+    ResponsiveUtil responsive,
+  ) {
+    return RadioListTile<ThemeMode>(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: responsive.fontSize(16),
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: responsive.fontSize(14),
+        ),
+      ),
+      value: value,
+      groupValue: groupValue,
+      onChanged: onChanged,
+      secondary: Icon(
+        icon,
+        size: responsive.iconSize(24),
+      ),
+    );
+  }
+  
+  Widget _buildListTile(
+    BuildContext context,
+    String title,
+    String? subtitle,
+    IconData icon,
+    VoidCallback? onTap,
+    ResponsiveUtil responsive, {
+    bool isDestructive = false,
+  }) {
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: responsive.fontSize(16),
+          color: isDestructive ? AppColors.error : null,
+        ),
+      ),
+      subtitle: subtitle != null
+          ? Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: responsive.fontSize(14),
+              ),
+            )
+          : null,
+      leading: Icon(
+        icon,
+        size: responsive.iconSize(24),
+        color: isDestructive ? AppColors.error : null,
+      ),
+      trailing: onTap != null
+          ? Icon(
+              Icons.arrow_forward_ios,
+              size: responsive.iconSize(16),
+            )
+          : null,
+      onTap: onTap,
+    );
+  }
+  
+  Widget _buildDataManagementTile(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    bool isLoading,
+    VoidCallback onTap,
+    ResponsiveUtil responsive, {
+    bool isDestructive = false,
+  }) {
+    return ListTile(
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: responsive.fontSize(16),
+          color: isDestructive ? AppColors.error : null,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: responsive.fontSize(14),
+        ),
+      ),
+      leading: Icon(
+        icon,
+        size: responsive.iconSize(24),
+        color: isDestructive ? AppColors.error : null,
+      ),
+      trailing: isLoading
+          ? SizedBox(
+              width: responsive.iconSize(20),
+              height: responsive.iconSize(20),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  isDestructive ? AppColors.error : Theme.of(context).primaryColor,
+                ),
+              ),
+            )
+          : Icon(
+              Icons.arrow_forward_ios,
+              size: responsive.iconSize(16),
+            ),
+      onTap: isLoading ? null : onTap,
     );
   }
   

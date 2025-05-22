@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:communication_practice/models/achievement_model.dart';
 import 'package:communication_practice/models/user_model.dart';
+import 'package:communication_practice/services/firebase/firestore_service.dart';
 
 class AchievementController extends ChangeNotifier {
-  List<AchievementModel> _achievements = [];
+  final List<AchievementModel> _achievements = [];
   bool _isLoading = false;
   String? _error;
+  final FirestoreService _firestoreService = FirestoreService();
   
   List<AchievementModel> get achievements => _achievements;
   List<AchievementModel> get unlockedAchievements => 
@@ -21,77 +23,10 @@ class AchievementController extends ChangeNotifier {
     _setLoading(true);
     
     try {
-      // Simulate API call - replace with actual API call in production
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Define sample achievements
-      _achievements = [
-        const AchievementModel(
-          id: '1',
-          title: 'Conversation Starter',
-          description: 'Complete your first conversation',
-          iconName: 'chat_bubble',
-          category: AchievementCategory.conversations,
-          requiredCount: 1,
-          currentCount: 0,
-        ),
-        const AchievementModel(
-          id: '2',
-          title: 'Dedicated Learner',
-          description: 'Complete 10 conversations',
-          iconName: 'school',
-          category: AchievementCategory.conversations,
-          requiredCount: 10,
-          currentCount: 0,
-        ),
-        const AchievementModel(
-          id: '3',
-          title: 'Communication Master',
-          description: 'Complete 50 conversations',
-          iconName: 'workspace_premium',
-          category: AchievementCategory.conversations,
-          requiredCount: 50,
-          currentCount: 0,
-        ),
-        const AchievementModel(
-          id: '4',
-          title: 'Perfect Score',
-          description: 'Get a 5.0 score in any conversation',
-          iconName: 'star',
-          category: AchievementCategory.scores,
-          requiredCount: 1,
-          currentCount: 0,
-        ),
-        const AchievementModel(
-          id: '5',
-          title: 'On Fire',
-          description: 'Maintain a 3-day streak',
-          iconName: 'local_fire_department',
-          category: AchievementCategory.streaks,
-          requiredCount: 3,
-          currentCount: 0,
-        ),
-        const AchievementModel(
-          id: '6',
-          title: 'Dedicated Practitioner',
-          description: 'Maintain a 7-day streak',
-          iconName: 'auto_awesome',
-          category: AchievementCategory.streaks,
-          requiredCount: 7,
-          currentCount: 0,
-        ),
-        const AchievementModel(
-          id: '7',
-          title: 'Topic Explorer',
-          description: 'Practice on 5 different topics',
-          iconName: 'explore',
-          category: AchievementCategory.topics,
-          requiredCount: 5,
-          currentCount: 0,
-        ),
-      ];
-      
-      notifyListeners();
+      final achievements = await _firestoreService.getAchievements();
+      _achievements.clear();
+      _achievements.addAll(achievements);
+      _clearError();
     } catch (e) {
       _setError('Failed to load achievements: ${e.toString()}');
     } finally {
@@ -147,17 +82,26 @@ class AchievementController extends ChangeNotifier {
     notifyListeners();
   }
   
+  Future<void> updateAchievementProgress(String id, int currentCount) async {
+    try {
+      await _firestoreService.updateAchievementProgress(id, currentCount);
+      await _loadAchievements(); // Reload to get updated achievements
+    } catch (e) {
+      _setError('Failed to update achievement progress: ${e.toString()}');
+    }
+  }
+  
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
   }
   
-  void _setError(String? errorMessage) {
-    _error = errorMessage;
+  void _setError(String message) {
+    _error = message;
     notifyListeners();
   }
   
-  void clearError() {
+  void _clearError() {
     _error = null;
     notifyListeners();
   }

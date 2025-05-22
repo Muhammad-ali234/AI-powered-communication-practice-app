@@ -4,6 +4,7 @@ import 'package:communication_practice/controllers/user_controller.dart';
 import 'package:communication_practice/controllers/achievement_controller.dart';
 import 'package:communication_practice/models/user_model.dart';
 import 'package:communication_practice/utils/theme.dart';
+import 'package:communication_practice/utils/responsive.dart';
 import 'package:communication_practice/views/profile/components/stats_dashboard.dart';
 import 'package:communication_practice/views/profile/components/achievements_tab.dart';
 import 'package:communication_practice/views/profile/components/progress_charts.dart';
@@ -34,6 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveUtil(context);
+    
     return Scaffold(
       body: Consumer<UserController>(
         builder: (context, userController, child) {
@@ -60,49 +63,71 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           return NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
-                _buildAppBar(context, user),
+                _buildAppBar(context, responsive, user),
                 SliverPersistentHeader(
                   delegate: _SliverAppBarDelegate(
-                    TabBar(
-                      controller: _tabController,
-                      labelColor: AppColors.primary,
-                      unselectedLabelColor: Theme.of(context).brightness == Brightness.light
-                          ? AppColors.textSecondary
-                          : AppColors.darkTextSecondary,
-                      indicatorColor: AppColors.primary,
-                      tabs: const [
-                        Tab(text: 'STATS'),
-                        Tab(text: 'ACHIEVEMENTS'),
-                        Tab(text: 'PROGRESS'),
-                      ],
-                    ),
+                    _buildTabBar(responsive),
                   ),
                   pinned: true,
                 ),
               ];
             },
-                          body: TabBarView(
-                controller: _tabController,
-                children: const [
-                  StatsDashboard(),
-                  AchievementsTab(),
-                  ProgressCharts(),
-                ],
-              ),
+            body: TabBarView(
+              controller: _tabController,
+              children: const [
+                StatsDashboard(),
+                AchievementsTab(),
+                ProgressCharts(),
+              ],
+            ),
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _shareProfile(context),
-        backgroundColor: AppColors.secondary,
-        child: const Icon(Icons.share_outlined),
+      floatingActionButton: _buildFloatingActionButton(context, responsive),
+    );
+  }
+  
+  Widget _buildFloatingActionButton(BuildContext context, ResponsiveUtil responsive) {
+    return FloatingActionButton(
+      onPressed: () => _shareProfile(context),
+      backgroundColor: AppColors.secondary,
+      child: Icon(
+        Icons.share_outlined,
+        size: responsive.iconSize(24),
       ),
     );
   }
   
-  SliverAppBar _buildAppBar(BuildContext context, UserModel user) {
+  TabBar _buildTabBar(ResponsiveUtil responsive) {
+    return TabBar(
+      controller: _tabController,
+      labelColor: AppColors.primary,
+      unselectedLabelColor: Theme.of(context).brightness == Brightness.light
+          ? AppColors.textSecondary
+          : AppColors.darkTextSecondary,
+      indicatorColor: AppColors.primary,
+      labelStyle: TextStyle(
+        fontSize: responsive.fontSize(14),
+        fontWeight: FontWeight.w600,
+      ),
+      unselectedLabelStyle: TextStyle(
+        fontSize: responsive.fontSize(14),
+        fontWeight: FontWeight.normal,
+      ),
+      tabs: const [
+        Tab(text: 'STATS'),
+        Tab(text: 'ACHIEVEMENTS'),
+        Tab(text: 'PROGRESS'),
+      ],
+    );
+  }
+  
+  SliverAppBar _buildAppBar(BuildContext context, ResponsiveUtil responsive, UserModel user) {
+    final expandedHeight = responsive.isSmallScreen ? 180.0 : 
+                          responsive.isMediumScreen ? 200.0 : 220.0;
+    
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: expandedHeight,
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -115,45 +140,106 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: Colors.white,
-                    backgroundImage: user.photoUrl.isNotEmpty
-                        ? NetworkImage(user.photoUrl) as ImageProvider
-                        : const AssetImage('assets/images/default_avatar.png'),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
-                  ),
-                  Text(
-                    user.bio.isNotEmpty ? user.bio : 'No bio added yet',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+              padding: responsive.responsivePadding(all: 16.0),
+              child: _buildProfileHeader(responsive, user),
             ),
           ),
         ),
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.edit_outlined),
+          icon: Icon(
+            Icons.edit_outlined,
+            size: responsive.iconSize(24),
+          ),
           onPressed: () => _navigateToEditProfile(context),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildProfileHeader(ResponsiveUtil responsive, UserModel user) {
+    if (responsive.isSmallScreen) {
+      return _buildCompactHeader(responsive, user);
+    } else {
+      return _buildStandardHeader(responsive, user);
+    }
+  }
+  
+  Widget _buildStandardHeader(ResponsiveUtil responsive, UserModel user) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CircleAvatar(
+          radius: responsive.iconSize(40),
+          backgroundColor: Colors.white,
+          backgroundImage: user.photoUrl.isNotEmpty
+              ? NetworkImage(user.photoUrl) as ImageProvider
+              : const AssetImage('assets/images/default_avatar.png'),
+        ),
+        SizedBox(height: responsive.sm),
+        Text(
+          user.name,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: responsive.fontSize(20),
+          ),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: responsive.xs),
+        Text(
+          user.bio.isNotEmpty ? user.bio : 'No bio added yet',
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: responsive.fontSize(14),
+          ),
+          maxLines: responsive.isExtraLargeScreen ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildCompactHeader(ResponsiveUtil responsive, UserModel user) {
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: responsive.iconSize(30),
+          backgroundColor: Colors.white,
+          backgroundImage: user.photoUrl.isNotEmpty
+              ? NetworkImage(user.photoUrl) as ImageProvider
+              : const AssetImage('assets/images/default_avatar.png'),
+        ),
+        SizedBox(width: responsive.md),
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                user.name,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: responsive.fontSize(18),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: responsive.xs),
+              Text(
+                user.bio.isNotEmpty ? user.bio : 'No bio added yet',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: responsive.fontSize(12),
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -216,4 +302,4 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   bool shouldRebuild(covariant _SliverAppBarDelegate oldDelegate) {
     return false;
   }
-} 
+}

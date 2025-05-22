@@ -1,14 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:communication_practice/models/user_model.dart';
+import 'package:communication_practice/services/firebase/auth_service.dart';
 
 class UserController extends ChangeNotifier {
   UserModel? _user;
   bool _isLoading = false;
   String? _error;
+  final AuthService _authService = AuthService();
   
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  
+  UserController() {
+    _loadCurrentUser();
+  }
+  
+  Future<void> _loadCurrentUser() async {
+    _setLoading(true);
+    try {
+      _user = await _authService.getCurrentUser();
+    } catch (e) {
+      _setError('Failed to load user: ${e.toString()}');
+    } finally {
+      _setLoading(false);
+    }
+  }
   
   void setUser(UserModel user) {
     _user = user;
@@ -28,19 +45,15 @@ class UserController extends ChangeNotifier {
     _setLoading(true);
     
     try {
-      // Simulate API call - replace with actual API call in production
-      await Future.delayed(const Duration(seconds: 2));
-      
-      _user = _user!.copyWith(
+      final updatedUser = _user!.copyWith(
         name: name ?? _user!.name,
         bio: bio ?? _user!.bio,
         photoUrl: photoUrl ?? _user!.photoUrl,
         lastActive: DateTime.now(),
       );
-      
-      // In a real app, save updated user to backend
-      
-      notifyListeners();
+      await _authService.updateUserProfile(updatedUser);
+      // Reload user data
+      await _loadCurrentUser();
     } catch (e) {
       _setError('Failed to update profile: ${e.toString()}');
     } finally {
@@ -58,8 +71,6 @@ class UserController extends ChangeNotifier {
     );
     
     notifyListeners();
-    
-    // In a real app, update backend with new count
   }
   
   void updateUserStreak() {
